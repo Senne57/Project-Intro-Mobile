@@ -41,19 +41,18 @@ export default function Create() {
     setShowLocationModal(false);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!selectedLocation) {
       Alert.alert("❌ Fout", "Selecteer alstublieft een locatie");
       return;
     }
 
-    // Pass creator info als het profiel bestaat
     const creatorInfo = profile ? {
       firstName: profile.firstName,
       lastName: profile.lastName,
     } : undefined;
 
-    const success = createMatch(
+    const success = await createMatch(
       selectedLocation.name,
       selectedLevel,
       date,
@@ -63,7 +62,7 @@ export default function Create() {
     );
 
     if (success) {
-      const creatorName = profile 
+      const creatorName = profile
         ? `${profile.firstName} ${profile.lastName}`
         : "Anoniem";
 
@@ -147,7 +146,10 @@ export default function Create() {
           >
             <Picker
               selectedValue={selectedCity}
-              onValueChange={setSelectedCity}
+              onValueChange={(value) => {
+                setSelectedCity(value);
+                setSelectedLocation(null);
+              }}
               itemStyle={{
                 color: colors.text,
                 backgroundColor: colors.cardBackground,

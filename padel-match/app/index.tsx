@@ -1,28 +1,90 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "./context/ThemeContext";
-import { useProfile } from "./context/ProfileContext.tsx";
+import { auth, db } from "./lib/firebase";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { useProfile } from "./context/ProfileContext";
 
 export default function Index() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { isRegistered } = useProfile();
+  const { setProfileFromFirebase } = useProfile();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Als gebruiker al geregistreerd is, ga direct naar home
-  if (isRegistered) {
-    router.replace("/(tabs)/home");
-    return null;
-  }
+  // Controleer of gebruiker al ingelogd is
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Gebruiker is ingelogd, laad profiel
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) {
+          setProfileFromFirebase({ id: user.uid, ...docSnap.data() });
+          router.replace("/(tabs)/home");
+        } else {
+          // Ingelogd maar geen profiel → naar register
+          router.replace("/register");
+        }
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Vul alstublieft email en wachtwoord in");
+      Alert.alert("Fout", "Vul alstublieft email en wachtwoord in");
       return;
     }
-    router.replace("/confirm");
+
+    setIsLoggingIn(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Laad profiel uit Firebase
+      const docSnap = await getDoc(doc(db, "users", user.uid));
+      if (docSnap.exists()) {
+        setProfileFromFirebase({ id: user.uid, ...docSnap.data() });
+        router.replace("/(tabs)/home");
+      } else {
+        // Account bestaat maar geen profiel
+        router.replace("/register");
+      }
+    } catch (error: any) {
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        Alert.alert(
+          "Fout",
+          "Email of wachtwoord is incorrect. Heb je al een account?",
+          [
+            { text: "Annuleren", style: "cancel" },
+            {
+              text: "Registreren",
+              onPress: () => router.push("/register"),
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Fout", "Er is iets misgegaan. Probeer opnieuw.");
+      }
+    }
+    setIsLoggingIn(false);
   };
 
   const handleSkip = () => {
@@ -31,10 +93,22 @@ export default function Index() {
 
   const styles = getStyles(colors);
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={styles.loadingEmoji}></Text>
+        <ActivityIndicator size="large" color={colors.button} style={{ marginTop: 20 }} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Laden...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>🎾 Padel Match</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Padel Match</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Vind je volgende wedstrijd
         </Text>
@@ -73,25 +147,32 @@ export default function Index() {
         />
 
         <TouchableOpacity
-          style={[styles.loginButton, { backgroundColor: colors.button }]}
+          style={[styles.loginButton, { backgroundColor: colors.button, opacity: isLoggingIn ? 0.7 : 1 }]}
           onPress={handleLogin}
+          disabled={isLoggingIn}
         >
-          <Text style={styles.loginButtonText}>Inloggen</Text>
+          {isLoggingIn ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Inloggen</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.skipButton, { borderColor: colors.button }]}
+          style={[styles.skipButton, { borderColor: colors.border }]}
           onPress={handleSkip}
         >
-          <Text style={[styles.skipButtonText, { color: colors.button }]}>
-            ⏭️ Overslaan
+          <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
+            Overslaan
           </Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={[styles.footer, { color: colors.textTertiary }]}>
-        Nog geen account? Registreer je hier
-      </Text>
+      <TouchableOpacity onPress={() => router.push("/register")}>
+        <Text style={[styles.footer, { color: colors.button }]}>
+          Nog geen account? Registreer je hier
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -102,6 +183,17 @@ function getStyles(colors: any) {
       flex: 1,
       padding: 20,
       justifyContent: "space-between",
+    },
+    loadingContainer: {
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    loadingEmoji: {
+      fontSize: 60,
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 16,
     },
     content: {
       flex: 1,
@@ -140,15 +232,15 @@ function getStyles(colors: any) {
       padding: 15,
       borderRadius: 10,
       alignItems: "center",
-      borderWidth: 2,
+      borderWidth: 1,
     },
     skipButtonText: {
       fontSize: 16,
-      fontWeight: "bold",
     },
     footer: {
       textAlign: "center",
       fontSize: 14,
+      marginBottom: 10,
     },
   });
 }
