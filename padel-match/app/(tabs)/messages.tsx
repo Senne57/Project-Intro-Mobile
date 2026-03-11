@@ -46,7 +46,7 @@ export default function Messages() {
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
-              🎾 {currentConversation.groupName}
+              {currentConversation.groupName}
             </Text>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
               {currentConversation.participants.length} spelers
@@ -123,7 +123,7 @@ export default function Messages() {
             onPress={handleSendMessage}
             disabled={!inputMessage.trim()}
           >
-            <Text style={styles.sendButtonText}>📤</Text>
+            <Text style={styles.sendButtonText}></Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -132,11 +132,11 @@ export default function Messages() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.text }]}>💬 Berichten</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Berichten</Text>
 
       {conversations.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>💬</Text>
+          <Text style={styles.emptyEmoji}></Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             Geen groepsgesprekken
           </Text>
@@ -155,7 +155,7 @@ export default function Messages() {
             >
               <View style={styles.conversationHeader}>
                 <View style={styles.groupAvatar}>
-                  <Text style={styles.groupAvatarText}>🎾</Text>
+                  <Text style={styles.groupAvatarText}></Text>
                 </View>
                 <View style={styles.conversationInfo}>
                   <Text style={[styles.userName, { color: colors.text }]}>{item.groupName}</Text>

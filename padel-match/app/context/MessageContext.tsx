@@ -53,12 +53,16 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!profile) return;
 
+    let isMounted = true; // ✅ fix
+
     const q = query(
       collection(db, "groupConversations"),
       where("participants", "array-contains", profile.id)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!isMounted) return; // ✅ fix
+
       const convs: GroupConversation[] = snapshot.docs.map((convDoc) => {
         const data = convDoc.data();
         return {
@@ -77,12 +81,17 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       setConversations(convs);
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false; // ✅ fix
+      unsubscribe();
+    };
   }, [profile]);
 
   // Realtime berichten voor huidig gesprek
   useEffect(() => {
     if (!currentConversation || !profile) return;
+
+    let isMounted = true; // ✅ fix
 
     const messagesQ = query(
       collection(db, "groupConversations", currentConversation.id, "messages"),
@@ -90,6 +99,8 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     );
 
     const unsubscribe = onSnapshot(messagesQ, (snapshot) => {
+      if (!isMounted) return; // ✅ fix
+
       const messages: Message[] = snapshot.docs.map((msgDoc) => {
         const msgData = msgDoc.data();
         const isSystem = msgData.senderId === "system";
@@ -115,7 +126,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         prev ? { ...prev, messages } : null
       );
 
-      // Update ook de lijst
       setConversations((prev) =>
         prev.map((c) =>
           c.id === currentConversation.id ? { ...c, messages } : c
@@ -123,8 +133,11 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       );
     });
 
-    return () => unsubscribe();
-  }, [currentConversation?.id]);
+    return () => {
+      isMounted = false; // ✅ fix
+      unsubscribe();
+    };
+  }, [currentConversation?.id, profile]); // ✅ profile toegevoegd
 
   const sendMessage = async (conversationId: string, content: string) => {
     if (!profile) return;
@@ -140,13 +153,12 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         }
       );
 
-      // Update laatste bericht
       await updateDoc(doc(db, "groupConversations", conversationId), {
         lastMessage: content,
         lastMessageTime: new Date(),
       });
     } catch (error) {
-      console.error("❌ Fout bij versturen bericht:", error);
+      console.error("Fout bij versturen bericht:", error);
     }
   };
 

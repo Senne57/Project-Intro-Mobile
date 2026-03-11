@@ -26,7 +26,7 @@ export default function Confirm() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>📧 Code Bevestigen</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Code Bevestigen</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           We hebben je een code gestuurd
         </Text>
@@ -60,7 +60,7 @@ export default function Confirm() {
           onPress={handleSkip}
         >
           <Text style={[styles.skipButtonText, { color: colors.button }]}>
-            ⏭️ Overslaan
+            Overslaan
           </Text>
         </TouchableOpacity>
       </View>

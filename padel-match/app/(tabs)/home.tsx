@@ -35,7 +35,7 @@ export default function Home() {
   const handleReserve = (item: MatchWithPlayers) => {
     // Als het je eigen match is, kun je niet reserveren
     if (item.createdByMe) {
-      Alert.alert("ℹ️", "Dit is je eigen wedstrijd. Je bent al ingeschreven als organizer!");
+      Alert.alert("", "Dit is je eigen wedstrijd. Je bent al ingeschreven als organizer!");
       return;
     }
 
@@ -88,7 +88,7 @@ export default function Home() {
         },
       });
     } else {
-      Alert.alert("❌ Fout", "Deze wedstrijd is vol of niet beschikbaar.");
+      Alert.alert("Fout", "Deze wedstrijd is vol of niet beschikbaar.");
     }
   };
 
@@ -172,7 +172,7 @@ export default function Home() {
       >
         <View style={styles.header}>
           <View style={styles.headerTextSection}>
-            <Text style={styles.headerEmoji}>🎾</Text>
+            <Text style={styles.headerEmoji}></Text>
             <Text style={styles.headerTitle}>Vind je Match</Text>
             <Text style={styles.headerSubtitle}>
               {available.length} wedstrijden beschikbaar
@@ -204,7 +204,7 @@ export default function Home() {
               },
             ]}
           >
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.searchIcon}></Text>
             <View style={styles.searchInputWrapper}>
               <Text style={[styles.searchLabel, { color: colors.textSecondary }]}>
                 Zoek stad
@@ -296,7 +296,7 @@ export default function Home() {
         {/* Wedstrijden List */}
         {available.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>😢</Text>
+            <Text style={styles.emptyEmoji}></Text>
             <Text style={[styles.emptyText, { color: colors.text }]}>
               Geen wedstrijden gevonden
             </Text>
@@ -343,7 +343,7 @@ export default function Home() {
                           ]}
                         >
                           <Text style={styles.ownMatchBadgeText}>
-                            📍 Jij organiseert
+                            Jij organiseert
                           </Text>
                         </View>
                       )}
@@ -356,7 +356,7 @@ export default function Home() {
                         ]}
                       >
                         <Text style={styles.levelBadgeText}>
-                          🎾 Niveau {item.level}
+                          Niveau {item.level}
                         </Text>
                       </View>
                     </View>
@@ -375,11 +375,11 @@ export default function Home() {
                         <Text style={styles.clubName}>{item.club}</Text>
                         <View style={styles.detailsRow}>
                           <Text style={styles.detail}>
-                            🕒 {item.startTime} - {item.endTime}
+                            {item.startTime} - {item.endTime}
                           </Text>
                           <Text style={styles.detailDot}>•</Text>
                           <Text style={styles.detail}>
-                            📅{" "}
+                            {" "}
                             {item.date.toLocaleDateString("nl-NL", {
                               month: "short",
                               day: "numeric",

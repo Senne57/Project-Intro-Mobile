@@ -38,19 +38,19 @@ export default function Register() {
   const handleRegister = async () => {
     // Validatie
     if (!firstName || !lastName || !email || !password || !phone || !city) {
-      Alert.alert("❌ Fout", "Vul alstublieft alle velden in");
+      Alert.alert("Fout", "Vul alstublieft alle velden in");
       return;
     }
     if (!email.includes("@")) {
-      Alert.alert("❌ Fout", "Voer een geldig email adres in");
+      Alert.alert("Fout", "Voer een geldig email adres in");
       return;
     }
     if (password.length < 6) {
-      Alert.alert("❌ Fout", "Wachtwoord moet minstens 6 tekens zijn");
+      Alert.alert("Fout", "Wachtwoord moet minstens 6 tekens zijn");
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("❌ Fout", "Wachtwoorden komen niet overeen");
+      Alert.alert("Fout", "Wachtwoorden komen niet overeen");
       return;
     }
 
@@ -78,14 +78,14 @@ export default function Register() {
       setProfileFromFirebase({ id: user.uid, ...profileData });
 
       Alert.alert(
-        "✅ Account aangemaakt!",
+        "Account aangemaakt!",
         `Welkom ${firstName}! Je account is klaar.`,
         [{ text: "Start", onPress: () => router.replace("/(tabs)/home") }]
       );
     } catch (error: any) {
       if (error.code === "auth/email-already-in-use") {
         Alert.alert(
-          "❌ Fout",
+          "Fout",
           "Dit email adres is al in gebruik. Wil je inloggen?",
           [
             { text: "Annuleren", style: "cancel" },
@@ -93,7 +93,7 @@ export default function Register() {
           ]
         );
       } else {
-        Alert.alert("❌ Fout", "Er is iets misgegaan: " + error.message);
+        Alert.alert("Fout", "Er is iets misgegaan: " + error.message);
       }
     }
     setIsLoading(false);
@@ -115,7 +115,7 @@ export default function Register() {
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
-        <Text style={styles.headerEmoji}>👤</Text>
+        <Text style={styles.headerEmoji}></Text>
         <Text style={styles.headerTitle}>Account Aanmaken</Text>
         <Text style={styles.headerSubtitle}>
           Maak je account aan om te kunnen reserveren

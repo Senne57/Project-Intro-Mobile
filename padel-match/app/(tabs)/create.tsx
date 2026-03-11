@@ -43,7 +43,7 @@ export default function Create() {
 
   const handleCreate = async () => {
     if (!selectedLocation) {
-      Alert.alert("❌ Fout", "Selecteer alstublieft een locatie");
+      Alert.alert("Fout", "Selecteer alstublieft een locatie");
       return;
     }
 
@@ -67,8 +67,8 @@ export default function Create() {
         : "Anoniem";
 
       Alert.alert(
-        "✅ Wedstrijd Aangemaakt!",
-        `Je wedstrijd is aangemaakt!\n\n📍 ${selectedLocation.name}\n📅 ${date.toLocaleDateString("nl-NL")}\n🕒 ${selectedTimeSlot.label}\n🎾 Niveau ${selectedLevel}\n👤 Organizer: ${creatorName}`,
+        "Wedstrijd Aangemaakt!",
+        `Je wedstrijd is aangemaakt!\n\n${selectedLocation.name}\n${date.toLocaleDateString("nl-NL")}\n${selectedTimeSlot.label}\nNiveau ${selectedLevel}\nOrganizer: ${creatorName}`,
         [
           {
             text: "Terug naar Zoeken",
@@ -78,7 +78,7 @@ export default function Create() {
       );
     } else {
       Alert.alert(
-        "⚠️ Oops",
+        "Oops",
         "Er bestaat al een wedstrijd op deze plek en tijd. Kies een ander moment!"
       );
     }
@@ -101,7 +101,7 @@ export default function Create() {
         style={styles.headerGradient}
       >
         <View style={styles.header}>
-          <Text style={styles.headerEmoji}>➕</Text>
+          <Text style={styles.headerEmoji}></Text>
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>Wedstrijd Aanmaken</Text>
             <Text style={styles.headerSubtitle}>Maak je eigen match</Text>
@@ -118,7 +118,7 @@ export default function Create() {
         {/* Status Info */}
         <View style={[styles.infoBox, { backgroundColor: colors.infoBox, borderColor: colors.infoBorder }]}>
           <Text style={[styles.infoText, { color: colors.text }]}>
-            👤 Je zult automatisch als organizer aan deze wedstrijd worden toegevoegd
+            Je zult automatisch als organizer aan deze wedstrijd worden toegevoegd
           </Text>
           {isRegistered && profile && (
             <Text style={[styles.infoTextSub, { color: colors.textSecondary }]}>
@@ -127,7 +127,7 @@ export default function Create() {
           )}
           {(!isRegistered || !profile) && (
             <Text style={[styles.infoTextSub, { color: colors.textSecondary }]}>
-              ⚠️ Je zult als anoniem (?) verschijnen
+              Je zult als anoniem (?) verschijnen
             </Text>
           )}
         </View>
@@ -191,7 +191,7 @@ export default function Create() {
 
           {selectedLocation && (
             <Text style={[styles.locationAddress, { color: colors.textSecondary }]}>
-              📍 {selectedLocation.address}
+              {selectedLocation.address}
             </Text>
           )}
         </View>
@@ -252,7 +252,7 @@ export default function Create() {
             </Picker>
           </View>
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            ℹ️ Elk tijdslot is 2 uur lang
+            Elk tijdslot is 2 uur lang
           </Text>
         </View>
 
@@ -299,7 +299,7 @@ export default function Create() {
           ]}
         >
           <Text style={[styles.warningText, { color: colors.text }]}>
-            ℹ️ Je kan meerdere wedstrijden op dezelfde locatie aanmaken, zolang de
+            Je kan meerdere wedstrijden op dezelfde locatie aanmaken, zolang de
             uren niet hetzelfde zijn.
           </Text>
         </View>
@@ -309,7 +309,7 @@ export default function Create() {
           style={[styles.createButton, { backgroundColor: colors.button }]}
           onPress={handleCreate}
         >
-          <Text style={styles.createButtonText}>➕ Wedstrijd Aanmaken</Text>
+          <Text style={styles.createButtonText}>Wedstrijd Aanmaken</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -346,7 +346,7 @@ export default function Create() {
                   <Text
                     style={[styles.locationItemAddress, { color: colors.textSecondary }]}
                   >
-                    📍 {item.address}
+                    {item.address}
                   </Text>
                 </View>
                 {selectedLocation?.id === item.id && (

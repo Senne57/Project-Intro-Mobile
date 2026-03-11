@@ -24,23 +24,30 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Controleer of gebruiker al ingelogd is
   useEffect(() => {
+    let isMounted = true; // ✅ fix
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return; // ✅ stop als unmounted
+
       if (user) {
-        // Gebruiker is ingelogd, laad profiel
         const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (!isMounted) return; // ✅ ook na async call checken
+
         if (docSnap.exists()) {
           setProfileFromFirebase({ id: user.uid, ...docSnap.data() });
           router.replace("/(tabs)/home");
         } else {
-          // Ingelogd maar geen profiel → naar register
           router.replace("/register");
         }
       }
       setIsLoading(false);
     });
-    return () => unsubscribe();
+
+    return () => {
+      isMounted = false; // ✅ cleanup
+      unsubscribe();
+    };
   }, []);
 
   const handleLogin = async () => {
@@ -54,13 +61,11 @@ export default function Index() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Laad profiel uit Firebase
       const docSnap = await getDoc(doc(db, "users", user.uid));
       if (docSnap.exists()) {
         setProfileFromFirebase({ id: user.uid, ...docSnap.data() });
         router.replace("/(tabs)/home");
       } else {
-        // Account bestaat maar geen profiel
         router.replace("/register");
       }
     } catch (error: any) {

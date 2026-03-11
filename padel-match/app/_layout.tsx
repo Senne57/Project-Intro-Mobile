@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { ThemeProvider } from "./context/ThemeContext";
 import { MatchProvider } from "./context/MatchContext";
 import { MessageProvider } from "./context/MessageContext";
-import { ProfileProvider } from "./context/ProfileContext.tsx";
+import { ProfileProvider } from "./context/ProfileContext";
 
 export default function RootLayout() {
   return (
@@ -19,7 +19,7 @@ export default function RootLayout() {
                 options={{
                   presentation: "modal",
                   headerShown: true,
-                  headerTitle: "💳 Betaling",
+                  headerTitle: "Betaling",
                 }}
               />
               <Stack.Screen name="(tabs)" />

@@ -84,7 +84,6 @@ const getImage = (clubName: string) => {
   }
 };
 
-// Maak of join een groepsgesprek voor een wedstrijd
 export const joinMatchGroupChat = async (
   matchId: string,
   clubName: string,
@@ -104,7 +103,6 @@ export const joinMatchGroupChat = async (
     const groupName = `${clubName} — ${dateStr}`;
 
     if (!groupSnap.exists()) {
-      // Maak nieuwe groep aan
       await setDoc(groupRef, {
         matchId,
         groupName,
@@ -115,15 +113,13 @@ export const joinMatchGroupChat = async (
         createdAt: new Date(),
       });
 
-      // Eerste systeem bericht
       await addDoc(collection(db, "groupConversations", groupId, "messages"), {
         senderId: "system",
         senderName: "Systeem",
-        content: `🎾 Groepsgesprek aangemaakt voor ${groupName}`,
+        content: `Groepsgesprek aangemaakt voor ${groupName}`,
         createdAt: new Date(),
       });
     } else {
-      // Voeg toe aan bestaande groep
       await updateDoc(groupRef, {
         participants: arrayUnion(userId),
         [`participantNames.${userId}`]: userName,
@@ -131,18 +127,17 @@ export const joinMatchGroupChat = async (
         lastMessageTime: new Date(),
       });
 
-      // Systeem bericht
       await addDoc(collection(db, "groupConversations", groupId, "messages"), {
         senderId: "system",
         senderName: "Systeem",
-        content: `✅ ${userName} heeft zich ingeschreven`,
+        content: `${userName} heeft zich ingeschreven`,
         createdAt: new Date(),
       });
     }
 
     return groupId;
   } catch (error) {
-    console.error("❌ Fout bij groepsgesprek:", error);
+    console.error("Fout bij groepsgesprek:", error);
     return null;
   }
 };
@@ -157,44 +152,53 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
   const [myReservations, setMyReservationsState] = useState<MatchWithPlayers[]>([]);
 
   useEffect(() => {
+    let isMounted = true; // ✅ fix
+
+    const loadMatchesFromFirebase = async () => {
+      try {
+        const q = query(collection(db, "matches"), orderBy("date", "asc"));
+        const snapshot = await getDocs(q);
+        if (!isMounted) return; // ✅ check na async call
+        if (snapshot.empty) return;
+
+        const firebaseMatches: MatchWithPlayers[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            club: data.club,
+            clubName: data.clubName,
+            time: data.startTime,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            level: data.level,
+            players: data.players,
+            createdByMe: false,
+            date: data.date.toDate(),
+            image: getImage(data.clubName),
+            price: data.price,
+            locationId: data.locationId || "",
+            playersList: data.playersList || [],
+          };
+        });
+
+        if (!isMounted) return; // ✅ check voor setMatches
+
+        setMatches((prev) => {
+          const ids = new Set(firebaseMatches.map((m) => m.id));
+          const local = prev.filter((m) => !ids.has(m.id));
+          return [...local, ...firebaseMatches];
+        });
+      } catch (error) {
+        console.error("Fout bij laden wedstrijden:", error);
+      }
+    };
+
     loadMatchesFromFirebase();
+
+    return () => {
+      isMounted = false; // ✅ cleanup
+    };
   }, []);
-
-  const loadMatchesFromFirebase = async () => {
-    try {
-      const q = query(collection(db, "matches"), orderBy("date", "asc"));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) return;
-
-      const firebaseMatches: MatchWithPlayers[] = snapshot.docs.map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          club: data.club,
-          clubName: data.clubName,
-          time: data.startTime,
-          startTime: data.startTime,
-          endTime: data.endTime,
-          level: data.level,
-          players: data.players,
-          createdByMe: false,
-          date: data.date.toDate(),
-          image: getImage(data.clubName),
-          price: data.price,
-          locationId: data.locationId || "",
-          playersList: data.playersList || [],
-        };
-      });
-
-      setMatches((prev) => {
-        const ids = new Set(firebaseMatches.map((m) => m.id));
-        const local = prev.filter((m) => !ids.has(m.id));
-        return [...local, ...firebaseMatches];
-      });
-    } catch (error) {
-      console.error("❌ Fout bij laden wedstrijden:", error);
-    }
-  };
 
   const createMatch = async (
     club: string,
@@ -260,7 +264,6 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
       setMatches((prev) => [...prev, newMatch]);
       setMyReservationsState((prev) => [...prev, newMatch]);
 
-      // Maak groepsgesprek aan
       if (creatorId && creatorName) {
         await joinMatchGroupChat(
           docRef.id,
@@ -273,7 +276,7 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     } catch (error) {
-      console.error("❌ Fout bij aanmaken wedstrijd:", error);
+      console.error("Fout bij aanmaken wedstrijd:", error);
       return false;
     }
   };
@@ -290,10 +293,8 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
 
   const cancelReservation = async (matchId: string) => {
     try {
-      // Verwijder uit lokale staat
       setMyReservationsState((prev) => prev.filter((m) => m.id !== matchId));
 
-      // Update spelers aantal in Firebase
       const matchRef = doc(db, "matches", matchId);
       const matchSnap = await getDoc(matchRef);
       if (matchSnap.exists()) {
@@ -303,9 +304,9 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
         });
       }
 
-      console.log("✅ Reservatie geannuleerd:", matchId);
+      console.log("Reservatie geannuleerd:", matchId);
     } catch (error) {
-      console.error("❌ Fout bij annuleren:", error);
+      console.error("Fout bij annuleren:", error);
     }
   };
 

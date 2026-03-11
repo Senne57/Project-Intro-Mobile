@@ -45,7 +45,7 @@ export default function Profile() {
       <View style={[emptyStyles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
         <View style={emptyStyles.emptyContainer}>
-          <Text style={emptyStyles.emptyEmoji}>👤</Text>
+          <Text style={emptyStyles.emptyEmoji}></Text>
           <Text style={[emptyStyles.emptyTitle, { color: colors.text }]}>
             Geen profiel
           </Text>
@@ -56,7 +56,7 @@ export default function Profile() {
             style={[emptyStyles.createProfileButton, { backgroundColor: colors.button }]}
             onPress={() => router.push("/register")}
           >
-            <Text style={emptyStyles.createProfileButtonText}>📝 Registreren</Text>
+            <Text style={emptyStyles.createProfileButtonText}>Registreren</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[emptyStyles.loginButton, { borderColor: colors.button }]}
@@ -98,8 +98,8 @@ export default function Profile() {
             <Text style={styles.profileName}>
               {profile.firstName} {profile.lastName}
             </Text>
-            <Text style={styles.profileLevel}>🎾 Niveau {profile.level}</Text>
-            <Text style={styles.profileCity}>📍 {profile.city}</Text>
+            <Text style={styles.profileLevel}>Niveau {profile.level}</Text>
+            <Text style={styles.profileCity}>{profile.city}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -114,28 +114,28 @@ export default function Profile() {
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>📧 Email</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Email</Text>
             <Text style={[styles.infoValue, { color: colors.text }]}>{profile.email}</Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>📞 Telefoon</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Telefoon</Text>
             <Text style={[styles.infoValue, { color: colors.text }]}>{profile.phone}</Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>📍 Stad</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Stad</Text>
             <Text style={[styles.infoValue, { color: colors.text }]}>{profile.city}</Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>🎾 Niveau</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Niveau</Text>
             <Text style={[styles.infoValue, { color: colors.button }]}>{profile.level}</Text>
           </View>
         </View>
@@ -151,7 +151,7 @@ export default function Profile() {
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-            <Text style={styles.statEmoji}>📅</Text>
+            <Text style={styles.statEmoji}></Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Lid sinds</Text>
             <Text style={[styles.statValue, { color: colors.text }]}>
               {profile.joinDate.toLocaleDateString("nl-NL", { month: "short", year: "numeric" })}
@@ -159,7 +159,7 @@ export default function Profile() {
           </View>
 
           <View style={[styles.statCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-            <Text style={styles.statEmoji}>🏆</Text>
+            <Text style={styles.statEmoji}></Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Wedstrijden</Text>
             <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
           </View>
@@ -168,7 +168,7 @@ export default function Profile() {
         {/* Dark Mode Toggle */}
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
           <View style={styles.settingRow}>
-            <Text style={[styles.settingLabel, { color: colors.text }]}>🌙 Dark Mode</Text>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
             <Switch
               value={theme === "dark"}
               onValueChange={toggleTheme}
@@ -181,10 +181,10 @@ export default function Profile() {
         {/* Profiel Bewerken */}
         <TouchableOpacity
           style={[styles.editButton, { borderColor: colors.button }]}
-          onPress={() => Alert.alert("ℹ️", "Bewerk profiel functie komt binnenkort!")}
+          onPress={() => Alert.alert("", "Bewerk profiel functie komt binnenkort!")}
         >
           <Text style={[styles.editButtonText, { color: colors.button }]}>
-            ✏️ Profiel Bewerken
+            Profiel Bewerken
           </Text>
         </TouchableOpacity>
 
@@ -193,7 +193,7 @@ export default function Profile() {
           style={styles.logoutButton}
           onPress={handleLogout}
         >
-          <Text style={styles.logoutButtonText}>🚪 Uitloggen</Text>
+          <Text style={styles.logoutButtonText}>Uitloggen</Text>
         </TouchableOpacity>
 
       </View>

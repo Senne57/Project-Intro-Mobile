@@ -26,7 +26,7 @@ export default function Payment() {
       // Zoek de match
       const match = matches.find((m) => m.id === matchId) as MatchWithPlayers | undefined;
       if (!match) {
-        Alert.alert("❌ Fout", "Match niet gevonden");
+        Alert.alert("Fout", "Match niet gevonden");
         return;
       }
 
@@ -62,10 +62,10 @@ export default function Payment() {
 
       // Simuleer succesvol betaling
       Alert.alert(
-        "✅ Betaling Succesvol!",
-        `Je bent ingeschreven voor de wedstrijd!\n\n📍 ${club}\n📅 ${matchDate.toLocaleDateString(
+        "Betaling Succesvol!",
+        `Je bent ingeschreven voor de wedstrijd!\n\n${club}\n${matchDate.toLocaleDateString(
           "nl-NL"
-        )}\n🕒 ${time}\n🎾 Niveau ${level}\n💳 Betaald: €${priceNum.toFixed(2)}\n\nJe kunt je reservering vinden onder 'Mijn Reservaties'`,
+        )}\n${time}\nNiveau ${level}\nBetaald: €${priceNum.toFixed(2)}\n\nJe kunt je reservering vinden onder 'Mijn Reservaties'`,
         [
           {
             text: "Ga naar Mijn Reservaties",
@@ -91,12 +91,12 @@ export default function Payment() {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Wedstrijd Details</Text>
 
         <View style={styles.detailRow}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>📍 Locatie</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Locatie</Text>
           <Text style={[styles.value, { color: colors.text }]}>{club}</Text>
         </View>
 
         <View style={styles.detailRow}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>📅 Datum</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Datum</Text>
           <Text style={[styles.value, { color: colors.text }]}>
             {matchDate.toLocaleDateString("nl-NL", {
               weekday: "long",
@@ -108,12 +108,12 @@ export default function Payment() {
         </View>
 
         <View style={styles.detailRow}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>🕒 Tijd</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Tijd</Text>
           <Text style={[styles.value, { color: colors.text }]}>{time}</Text>
         </View>
 
         <View style={styles.detailRow}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>🎾 Niveau</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Niveau</Text>
           <Text style={[styles.value, { color: colors.text }]}>{level}</Text>
         </View>
 
@@ -121,7 +121,7 @@ export default function Payment() {
 
         {/* Your Profile */}
         <View style={styles.detailRow}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>👤 Deelnemer</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Deelnemer</Text>
           <Text style={[styles.value, { color: colors.text }]}>
             {hasProfile === "true" && profile
               ? `${profile.firstName} ${profile.lastName}`
@@ -151,7 +151,7 @@ export default function Payment() {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Betaalmethode</Text>
 
         <View style={[styles.paymentMethod, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Text style={styles.paymentIcon}>💳</Text>
+          <Text style={styles.paymentIcon}></Text>
           <View style={styles.paymentInfo}>
             <Text style={[styles.paymentName, { color: colors.text }]}>Credit Card</Text>
             <Text style={[styles.paymentDetails, { color: colors.textSecondary }]}>
@@ -165,7 +165,7 @@ export default function Payment() {
       {/* Warning */}
       <View style={[styles.warningBox, { backgroundColor: colors.infoBox, borderColor: colors.infoBorder }]}>
         <Text style={[styles.warningText, { color: colors.text }]}>
-          ⚠️ Na betaling ben je ingeschreven voor deze wedstrijd. Je kunt deze annuleren onder 'Mijn Reservaties'.
+          Na betaling ben je ingeschreven voor deze wedstrijd. Je kunt deze annuleren onder 'Mijn Reservaties'.
         </Text>
       </View>
 
@@ -176,7 +176,7 @@ export default function Payment() {
         disabled={isProcessing}
       >
         <Text style={styles.payButtonText}>
-          {isProcessing ? "⏳ Bezig met verwerken..." : `💰 Betaal €${priceNum.toFixed(2)}`}
+          {isProcessing ? "Bezig met verwerken..." : `Betaal €${priceNum.toFixed(2)}`}
         </Text>
       </TouchableOpacity>
 

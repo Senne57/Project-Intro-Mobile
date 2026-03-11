@@ -175,11 +175,11 @@ export default function Reservations() {
                     <View style={styles.badgeRow}>
                       <View style={[styles.statusBadge, { backgroundColor: item.createdByMe ? "#4CAF50" : "#2196F3" }]}>
                         <Text style={styles.statusBadgeText}>
-                          {item.createdByMe ? "📍 Jij organiseert" : "✅ Ingeschreven"}
+                          {item.createdByMe ? "Jij organiseert" : "Ingeschreven"}
                         </Text>
                       </View>
                       <View style={[styles.levelBadge, { backgroundColor: getLevelColor(item.level) }]}>
-                        <Text style={styles.levelBadgeText}>🎾 {item.level}</Text>
+                        <Text style={styles.levelBadgeText}>{item.level}</Text>
                       </View>
                     </View>
 
@@ -193,10 +193,10 @@ export default function Reservations() {
                       <View>
                         <Text style={styles.clubName}>{item.club}</Text>
                         <View style={styles.detailsRow}>
-                          <Text style={styles.detail}>🕒 {item.startTime} - {item.endTime}</Text>
+                          <Text style={styles.detail}>{item.startTime} - {item.endTime}</Text>
                           <Text style={styles.detailDot}>•</Text>
                           <Text style={styles.detail}>
-                            📅 {item.date.toLocaleDateString("nl-NL", { weekday: "short", month: "short", day: "numeric" })}
+                            {item.date.toLocaleDateString("nl-NL", { weekday: "short", month: "short", day: "numeric" })}
                           </Text>
                         </View>
                       </View>
@@ -209,9 +209,9 @@ export default function Reservations() {
                         <View style={styles.actionButtons}>
                           <TouchableOpacity
                             style={[styles.detailsButton, { backgroundColor: "rgba(255,255,255,0.2)" }]}
-                            onPress={() => Alert.alert("ℹ️", `Wedstrijd details van ${item.club}`)}
+                            onPress={() => Alert.alert("", `Wedstrijd details van ${item.club}`)}
                           >
-                            <Text style={styles.detailsButtonText}>ℹ️</Text>
+                            <Text style={styles.detailsButtonText}></Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={[styles.cancelButton, { backgroundColor: "#FF6B6B" }]}
