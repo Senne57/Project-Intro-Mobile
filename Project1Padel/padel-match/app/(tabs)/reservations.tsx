@@ -43,7 +43,7 @@ export default function Reservations() {
           style: "destructive",
           onPress: async () => {
             await cancelReservation(item.id);
-            Alert.alert("✅ Geannuleerd", "Je reservering is verwijderd.");
+            Alert.alert("Geannuleerd", "Je reservering is verwijderd.");
           },
         },
       ]
@@ -112,7 +112,6 @@ export default function Reservations() {
       >
         <View style={styles.header}>
           <View style={styles.headerTextSection}>
-            <Text style={styles.headerEmoji}>📋</Text>
             <Text style={styles.headerTitle}>Mijn Reservaties</Text>
             <Text style={styles.headerSubtitle}>{filteredReservations.length} wedstrijden</Text>
           </View>
@@ -151,7 +150,6 @@ export default function Reservations() {
 
         {filteredReservations.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🎾</Text>
             <Text style={[styles.emptyText, { color: colors.text }]}>Geen reservaties gevonden</Text>
             <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               {filterType === "created"

@@ -41,7 +41,7 @@ export default function Home() {
 
     if (!isRegistered || !profile) {
       Alert.alert(
-        "👤 Profiel Vereist",
+        "Profiel Vereist",
         "Je moet eerst een profiel aanmaken om te kunnen reserveren.",
         [
           {
@@ -172,7 +172,6 @@ export default function Home() {
       >
         <View style={styles.header}>
           <View style={styles.headerTextSection}>
-            <Text style={styles.headerEmoji}></Text>
             <Text style={styles.headerTitle}>Vind je Match</Text>
             <Text style={styles.headerSubtitle}>
               {available.length} wedstrijden beschikbaar

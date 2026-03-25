@@ -304,6 +304,29 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
         });
       }
 
+      // ✅ Leave the group chat when cancelling a reservation
+      // We import arrayRemove here to remove the user from the group chat participants.
+      // The leaveGroupChat function in MessageContext handles this, but we do a lightweight
+      // version here to avoid circular context dependencies.
+      const { arrayRemove: ar } = await import("firebase/firestore");
+      const groupRef = doc(db, "groupConversations", `match_${matchId}`);
+      // Note: auth.currentUser is used here so we don't need profile context
+      const { auth } = await import("../lib/firebase");
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await updateDoc(groupRef, {
+          participants: ar(currentUser.uid),
+          lastMessage: "Een speler heeft zich afgemeld",
+          lastMessageTime: new Date(),
+        }).catch(() => {}); // silently ignore if group doesn't exist
+        await addDoc(collection(db, "groupConversations", `match_${matchId}`, "messages"), {
+          senderId: "system",
+          senderName: "Systeem",
+          content: `Een speler heeft zich afgemeld`,
+          createdAt: new Date(),
+        }).catch(() => {});
+      }
+
       console.log("Reservatie geannuleerd:", matchId);
     } catch (error) {
       console.error("Fout bij annuleren:", error);
