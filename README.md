@@ -1,1 +1,1 @@
-Groep1 voor proejct2
+Groep1 voor project2
