@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { db } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
 import {
   collection,
   addDoc,
@@ -9,10 +9,12 @@ import {
   doc,
   updateDoc,
   arrayUnion,
+  arrayRemove,
   getDoc,
   setDoc,
+  Timestamp,
 } from "firebase/firestore";
-import { availableMatches, generateRandomPrice, Match } from "../data/matches";
+import { generateRandomPrice, Match } from "../data/matches";
 
 export type Player = {
   id?: string;
@@ -27,7 +29,7 @@ export type MatchWithPlayers = Match & {
 type MatchContextType = {
   matches: MatchWithPlayers[];
   myReservations: MatchWithPlayers[];
-  setMyReservations: (match: MatchWithPlayers) => void;
+  setMyReservations: (match: MatchWithPlayers) => Promise<void>;
   cancelReservation: (matchId: string) => Promise<void>;
   createMatch: (
     club: string,
@@ -143,26 +145,26 @@ export const joinMatchGroupChat = async (
 };
 
 export const MatchProvider = ({ children }: { children: ReactNode }) => {
-  const [matches, setMatches] = useState<MatchWithPlayers[]>(
-    availableMatches.map((m) => ({
-      ...m,
-      playersList: generateRandomPlayers(),
-    }))
-  );
+  // ✅ No more local hardcoded matches: Firestore is source of truth
+  const [matches, setMatches] = useState<MatchWithPlayers[]>([]);
   const [myReservations, setMyReservationsState] = useState<MatchWithPlayers[]>([]);
 
   useEffect(() => {
-    let isMounted = true; // ✅ fix
+    let isMounted = true;
 
     const loadMatchesFromFirebase = async () => {
       try {
         const q = query(collection(db, "matches"), orderBy("date", "asc"));
         const snapshot = await getDocs(q);
-        if (!isMounted) return; // ✅ check na async call
-        if (snapshot.empty) return;
+        if (!isMounted) return;
+
+        if (snapshot.empty) {
+          setMatches([]);
+          return;
+        }
 
         const firebaseMatches: MatchWithPlayers[] = snapshot.docs.map((d) => {
-          const data = d.data();
+          const data: any = d.data();
           return {
             id: d.id,
             club: data.club,
@@ -173,7 +175,7 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
             level: data.level,
             players: data.players,
             createdByMe: false,
-            date: data.date.toDate(),
+            date: data.date?.toDate ? data.date.toDate() : new Date(),
             image: getImage(data.clubName),
             price: data.price,
             locationId: data.locationId || "",
@@ -181,22 +183,75 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
           };
         });
 
-        if (!isMounted) return; // ✅ check voor setMatches
-
-        setMatches((prev) => {
-          const ids = new Set(firebaseMatches.map((m) => m.id));
-          const local = prev.filter((m) => !ids.has(m.id));
-          return [...local, ...firebaseMatches];
-        });
+        if (!isMounted) return;
+        setMatches(firebaseMatches);
       } catch (error) {
         console.error("Fout bij laden wedstrijden:", error);
       }
     };
 
+    const loadMyReservations = async (userId: string) => {
+      try {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+        if (!isMounted) return;
+
+        if (userSnap.exists()) {
+          const data: any = userSnap.data();
+          const reservedIds: string[] = data.reservations || [];
+          if (reservedIds.length === 0) {
+            setMyReservationsState([]);
+            return;
+          }
+
+          const reserved: MatchWithPlayers[] = [];
+          for (const matchId of reservedIds) {
+            const matchRef = doc(db, "matches", matchId);
+            const matchSnap = await getDoc(matchRef);
+            if (matchSnap.exists()) {
+              const d: any = matchSnap.data();
+              reserved.push({
+                id: matchSnap.id,
+                club: d.club,
+                clubName: d.clubName,
+                time: d.startTime,
+                startTime: d.startTime,
+                endTime: d.endTime,
+                level: d.level,
+                players: d.players,
+                createdByMe: d.createdBy === userId,
+                date: d.date?.toDate ? d.date.toDate() : new Date(),
+                image: getImage(d.clubName),
+                price: d.price,
+                locationId: d.locationId || "",
+                playersList: d.playersList || [],
+              });
+            }
+          }
+
+          if (!isMounted) return;
+          setMyReservationsState(reserved);
+        } else {
+          setMyReservationsState([]);
+        }
+      } catch (error) {
+        console.error("Fout bij laden reservaties:", error);
+      }
+    };
+
     loadMatchesFromFirebase();
 
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user && isMounted) {
+        loadMyReservations(user.uid);
+      } else if (isMounted) {
+        setMyReservationsState([]);
+      }
+    });
+
     return () => {
-      isMounted = false; // ✅ cleanup
+      isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -209,18 +264,11 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
     creatorName?: { firstName: string; lastName: string },
     creatorId?: string
   ): Promise<boolean> => {
-    const existingMatch = matches.find(
-      (m) =>
-        m.club.toLowerCase() === club.toLowerCase() &&
-        m.date.toDateString() === date.toDateString() &&
-        m.startTime === startTime
-    );
-    if (existingMatch) return false;
-
     const playersList: Player[] = [];
+
     if (creatorName) {
       playersList.push({
-        id: creatorId || "unknown",
+        id: creatorId || auth.currentUser?.uid || "unknown",
         firstName: creatorName.firstName,
         lastName: creatorName.lastName,
       });
@@ -229,7 +277,12 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
+      console.log("createMatch called with:", { club, level, date, startTime, endTime });
+      console.log("Current user uid:", auth.currentUser?.uid);
+
       const price = generateRandomPrice();
+
+      // ✅ Write to Firestore
       const docRef = await addDoc(collection(db, "matches"), {
         club,
         clubName: club.toLowerCase(),
@@ -237,12 +290,15 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
         endTime,
         level,
         players: 1,
-        date,
+        date: Timestamp.fromDate(date),
         price,
         locationId: "",
         playersList,
-        createdAt: new Date(),
+        createdBy: creatorId || auth.currentUser?.uid || "unknown",
+        createdAt: Timestamp.now(),
       });
+
+      console.log("✅ Firestore match created with id:", docRef.id);
 
       const newMatch: MatchWithPlayers = {
         id: docRef.id,
@@ -264,6 +320,16 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
       setMatches((prev) => [...prev, newMatch]);
       setMyReservationsState((prev) => [...prev, newMatch]);
 
+      // ✅ Save reservation under user doc (creates doc if missing)
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        await setDoc(userRef, { reservations: arrayUnion(docRef.id) }, { merge: true });
+        console.log("✅ Reservation stored in users/" + currentUser.uid);
+      } else {
+        console.log("⚠️ No authenticated user, skipping user reservation write");
+      }
+
       if (creatorId && creatorName) {
         await joinMatchGroupChat(
           docRef.id,
@@ -275,8 +341,10 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
       }
 
       return true;
-    } catch (error) {
-      console.error("Fout bij aanmaken wedstrijd:", error);
+    } catch (error: any) {
+      console.error("❌ Create match failed:", error);
+      console.error("Error code:", error?.code);
+      console.error("Error message:", error?.message);
       return false;
     }
   };
@@ -287,8 +355,20 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
     return match;
   };
 
-  const setMyReservations = (match: MatchWithPlayers) => {
+  const setMyReservations = async (match: MatchWithPlayers): Promise<void> => {
     setMyReservationsState((prev) => [...prev, match]);
+
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      // ✅ Create user doc if missing + add reservation id
+      const userRef = doc(db, "users", currentUser.uid);
+      await setDoc(userRef, { reservations: arrayUnion(match.id) }, { merge: true });
+      console.log("✅ Reservation added to users/" + currentUser.uid);
+    } catch (error) {
+      console.error("Fout bij opslaan reservatie in Firebase:", error);
+    }
   };
 
   const cancelReservation = async (matchId: string) => {
@@ -297,28 +377,31 @@ export const MatchProvider = ({ children }: { children: ReactNode }) => {
 
       const matchRef = doc(db, "matches", matchId);
       const matchSnap = await getDoc(matchRef);
+
       if (matchSnap.exists()) {
-        const currentPlayers = matchSnap.data().players || 1;
+        const currentPlayers = (matchSnap.data() as any).players || 1;
         await updateDoc(matchRef, {
           players: Math.max(0, currentPlayers - 1),
         });
       }
 
-      // ✅ Leave the group chat when cancelling a reservation
-      // We import arrayRemove here to remove the user from the group chat participants.
-      // The leaveGroupChat function in MessageContext handles this, but we do a lightweight
-      // version here to avoid circular context dependencies.
-      const { arrayRemove: ar } = await import("firebase/firestore");
-      const groupRef = doc(db, "groupConversations", `match_${matchId}`);
-      // Note: auth.currentUser is used here so we don't need profile context
-      const { auth } = await import("../lib/firebase");
       const currentUser = auth.currentUser;
       if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+
+        // NOTE: updateDoc will FAIL if the user doc doesn't exist.
+        // If that's a problem, replace updateDoc with setDoc(..., {merge:true})
+        await updateDoc(userRef, {
+          reservations: arrayRemove(matchId),
+        });
+
+        const groupRef = doc(db, "groupConversations", `match_${matchId}`);
         await updateDoc(groupRef, {
-          participants: ar(currentUser.uid),
+          participants: arrayRemove(currentUser.uid),
           lastMessage: "Een speler heeft zich afgemeld",
           lastMessageTime: new Date(),
-        }).catch(() => {}); // silently ignore if group doesn't exist
+        }).catch(() => {});
+
         await addDoc(collection(db, "groupConversations", `match_${matchId}`, "messages"), {
           senderId: "system",
           senderName: "Systeem",
