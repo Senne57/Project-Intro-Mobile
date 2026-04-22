@@ -22,10 +22,35 @@ class _HomeScreenState extends State<HomeScreen> {
     const ManageReservationsScreen(),
   ];
 
+  Future<void> _confirmLogout(BuildContext context) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Uitloggen'),
+        content: const Text('Ben je zeker dat je wilt uitloggen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuleren'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Uitloggen'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await authService.logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.teal,
@@ -35,9 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authService.logout();
-            },
+            onPressed: () => _confirmLogout(context),
           ),
         ],
       ),
