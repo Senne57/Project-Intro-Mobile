@@ -1,4 +1,14 @@
-import { View, Text, TouchableOpacity, ImageBackground, StyleSheet, Alert, ScrollView, StatusBar, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ImageBackground,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  StatusBar,
+  TextInput,
+} from "react-native";
 import { useMatch, MatchWithPlayers } from "../context/MatchContext";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
@@ -7,10 +17,12 @@ import { useCallback, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function Home() {
-  const { matches, reserveMatch } = useMatch();
+  // ✅ also read myReservations so we can hide already-reserved matches from "Zoeken"
+  const { matches, myReservations, reserveMatch } = useMatch();
   const { profile, isRegistered } = useProfile();
   const { colors, theme } = useTheme();
   const router = useRouter();
+
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,21 +33,42 @@ export default function Home() {
     }, [])
   );
 
+  // ✅ Build a set of match ids that I already reserved (or created)
+  const reservedIds = new Set((myReservations || []).map((r) => r.id));
+
   const available = matches.filter((m) => {
-    const matchesLevel = selectedLevel === null || Math.abs(m.level - selectedLevel) <= 1;
+    const matchesLevel =
+      selectedLevel === null || Math.abs(m.level - selectedLevel) <= 1;
+
     const matchesSearch =
       searchQuery === "" ||
       m.club.toLowerCase().includes(searchQuery.toLowerCase());
-    // Toon alle matches met lege plaatsen (zowel eigen als van anderen)
-    return m.players < 4 && matchesLevel && matchesSearch;
+
+    const hasSpots = (m.players ?? 0) < 4;
+
+    // ✅ Hide matches I already reserved (so they disappear from "Zoeken")
+    const notReservedByMe = !reservedIds.has(m.id);
+
+    // ✅ Optional: also hide my own created matches (because I'm already organizer)
+    const notMyOwnCreatedMatch = !m.createdByMe;
+
+    return (
+      hasSpots && matchesLevel && matchesSearch && notReservedByMe && notMyOwnCreatedMatch
+    );
   });
 
   const levelOptions = [0.5, 2, 3.5, 5, 6.5];
 
   const handleReserve = (item: MatchWithPlayers) => {
-    // Als het je eigen match is, kun je niet reserveren
+    // If it's your own match, you can't reserve
     if (item.createdByMe) {
       Alert.alert("", "Dit is je eigen wedstrijd. Je bent al ingeschreven als organizer!");
+      return;
+    }
+
+    // Extra safety: if already reserved, don't allow
+    if (reservedIds.has(item.id)) {
+      Alert.alert("", "Je bent al ingeschreven voor deze wedstrijd.");
       return;
     }
 
@@ -112,12 +145,7 @@ export default function Home() {
         <View style={styles.team}>
           {displayPlayers.map((player, i) => (
             <View key={`player-${i}`} style={styles.playerSlot}>
-              <View
-                style={[
-                  styles.playerCircle,
-                  { backgroundColor: getPlayerColor(i) },
-                ]}
-              >
+              <View style={[styles.playerCircle, { backgroundColor: getPlayerColor(i) }]}>
                 <Text style={styles.playerInitials}>
                   {player.firstName === "?"
                     ? "?"
@@ -126,13 +154,14 @@ export default function Home() {
               </View>
             </View>
           ))}
-          {emptySlots > 0 && [...Array(emptySlots)].map((_, i) => (
-            <View key={`empty-${i}`} style={styles.playerSlot}>
-              <View style={[styles.emptyCircle, { borderColor: colors.button }]}>
-                <Text style={[styles.plusText, { color: colors.button }]}>+</Text>
+          {emptySlots > 0 &&
+            [...Array(emptySlots)].map((_, i) => (
+              <View key={`empty-${i}`} style={styles.playerSlot}>
+                <View style={[styles.emptyCircle, { borderColor: colors.button }]}>
+                  <Text style={[styles.plusText, { color: colors.button }]}>+</Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
         </View>
 
         {/* Divider */}
@@ -161,11 +190,7 @@ export default function Home() {
 
       {/* Header Section */}
       <LinearGradient
-        colors={
-          theme === "dark"
-            ? ["#1a1a1a", "#2d2d2d"]
-            : ["#0984e3", "#06c"]
-        }
+        colors={theme === "dark" ? ["#1a1a1a", "#2d2d2d"] : ["#0984e3", "#06c"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -173,9 +198,7 @@ export default function Home() {
         <View style={styles.header}>
           <View style={styles.headerTextSection}>
             <Text style={styles.headerTitle}>Vind je Match</Text>
-            <Text style={styles.headerSubtitle}>
-              {available.length} wedstrijden beschikbaar
-            </Text>
+            <Text style={styles.headerSubtitle}>{available.length} wedstrijden beschikbaar</Text>
           </View>
           <View style={styles.headerStats}>
             <View style={styles.statBox}>
@@ -197,17 +220,12 @@ export default function Home() {
           <View
             style={[
               styles.searchBar,
-              {
-                backgroundColor: colors.cardBackground,
-                borderColor: colors.border,
-              },
+              { backgroundColor: colors.cardBackground, borderColor: colors.border },
             ]}
           >
             <Text style={styles.searchIcon}></Text>
             <View style={styles.searchInputWrapper}>
-              <Text style={[styles.searchLabel, { color: colors.textSecondary }]}>
-                Zoek stad
-              </Text>
+              <Text style={[styles.searchLabel, { color: colors.textSecondary }]}>Zoek stad</Text>
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Bijv. Antwerpen..."
@@ -226,9 +244,7 @@ export default function Home() {
 
         {/* Level Filter */}
         <View style={styles.filterSection}>
-          <Text style={[styles.filterTitle, { color: colors.text }]}>
-            Filtrer op Niveau
-          </Text>
+          <Text style={[styles.filterTitle, { color: colors.text }]}>Filtrer op Niveau</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -240,10 +256,7 @@ export default function Home() {
                 styles.levelButton,
                 selectedLevel === null && styles.levelButtonActive,
                 {
-                  backgroundColor:
-                    selectedLevel === null
-                      ? colors.button
-                      : colors.cardBackground,
+                  backgroundColor: selectedLevel === null ? colors.button : colors.cardBackground,
                   borderColor: colors.border,
                 },
               ]}
@@ -252,14 +265,13 @@ export default function Home() {
               <Text
                 style={[
                   styles.levelButtonText,
-                  {
-                    color: selectedLevel === null ? "#fff" : colors.text,
-                  },
+                  { color: selectedLevel === null ? "#fff" : colors.text },
                 ]}
               >
                 Allemaal
               </Text>
             </TouchableOpacity>
+
             {levelOptions.map((level) => (
               <TouchableOpacity
                 key={level}
@@ -267,10 +279,7 @@ export default function Home() {
                   styles.levelButton,
                   selectedLevel === level && styles.levelButtonActive,
                   {
-                    backgroundColor:
-                      selectedLevel === level
-                        ? colors.button
-                        : colors.cardBackground,
+                    backgroundColor: selectedLevel === level ? colors.button : colors.cardBackground,
                     borderColor: colors.border,
                   },
                 ]}
@@ -279,10 +288,7 @@ export default function Home() {
                 <Text
                   style={[
                     styles.levelButtonText,
-                    {
-                      color:
-                        selectedLevel === level ? "#fff" : colors.text,
-                    },
+                    { color: selectedLevel === level ? "#fff" : colors.text },
                   ]}
                 >
                   {level}
@@ -296,12 +302,8 @@ export default function Home() {
         {available.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}></Text>
-            <Text style={[styles.emptyText, { color: colors.text }]}>
-              Geen wedstrijden gevonden
-            </Text>
-            <Text
-              style={[styles.emptySubtext, { color: colors.textSecondary }]}
-            >
+            <Text style={[styles.emptyText, { color: colors.text }]}>Geen wedstrijden gevonden</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               Probeer andere filters of maak zelf een wedstrijd aan!
             </Text>
             <TouchableOpacity
@@ -321,54 +323,29 @@ export default function Home() {
                   imageStyle={styles.cardImage}
                   blurRadius={2}
                 >
-                  {/* Overlay Gradient */}
                   <LinearGradient
-                    colors={[
-                      "rgba(0,0,0,0.2)",
-                      "rgba(0,0,0,0.5)",
-                      "rgba(0,0,0,0.85)",
-                    ]}
+                    colors={["rgba(0,0,0,0.2)", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.85)"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={styles.overlay}
                   >
-                    {/* Top Section with Badges */}
                     <View style={styles.badgeRow}>
                       {item.createdByMe && (
-                        <View
-                          style={[
-                            styles.ownMatchBadge,
-                            { backgroundColor: "#4CAF50" },
-                          ]}
-                        >
-                          <Text style={styles.ownMatchBadgeText}>
-                            Jij organiseert
-                          </Text>
+                        <View style={[styles.ownMatchBadge, { backgroundColor: "#4CAF50" }]}>
+                          <Text style={styles.ownMatchBadgeText}>Jij organiseert</Text>
                         </View>
                       )}
-                      <View
-                        style={[
-                          styles.levelBadge,
-                          {
-                            backgroundColor: getLevelColor(item.level),
-                          },
-                        ]}
-                      >
-                        <Text style={styles.levelBadgeText}>
-                          Niveau {item.level}
-                        </Text>
+                      <View style={[styles.levelBadge, { backgroundColor: getLevelColor(item.level) }]}>
+                        <Text style={styles.levelBadgeText}>Niveau {item.level}</Text>
                       </View>
                     </View>
 
-                    {/* Team Display */}
                     <View style={styles.teamDisplaySection}>
                       <TeamDisplay match={item} />
                     </View>
 
-                    {/* Spacer */}
                     <View style={{ flex: 1 }} />
 
-                    {/* Content Section */}
                     <View style={styles.cardContent}>
                       <View>
                         <Text style={styles.clubName}>{item.club}</Text>
@@ -379,31 +356,19 @@ export default function Home() {
                           <Text style={styles.detailDot}>•</Text>
                           <Text style={styles.detail}>
                             {" "}
-                            {item.date.toLocaleDateString("nl-NL", {
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            {item.date.toLocaleDateString("nl-NL", { month: "short", day: "numeric" })}
                           </Text>
                         </View>
                       </View>
 
-                      {/* Bottom Section */}
                       <View style={styles.bottomSection}>
                         <View style={styles.priceContainer}>
-                          <Text
-                            style={[
-                              styles.priceLabel,
-                              {
-                                color: "rgba(255,255,255,0.7)",
-                              },
-                            ]}
-                          >
+                          <Text style={[styles.priceLabel, { color: "rgba(255,255,255,0.7)" }]}>
                             Prijs
                           </Text>
-                          <Text style={styles.price}>
-                            €{item.price.toFixed(2)}
-                          </Text>
+                          <Text style={styles.price}>€{item.price.toFixed(2)}</Text>
                         </View>
+
                         <TouchableOpacity
                           style={[
                             styles.reserveerButton,
@@ -430,7 +395,6 @@ export default function Home() {
           </View>
         )}
 
-        {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
@@ -446,40 +410,14 @@ function getLevelColor(level: number): string {
 
 function getStyles(colors: any, theme: string) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    headerGradient: {
-      paddingTop: 20,
-      paddingBottom: 30,
-      paddingHorizontal: 20,
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-    },
-    headerTextSection: {
-      flex: 1,
-    },
-    headerEmoji: {
-      fontSize: 40,
-      marginBottom: 8,
-    },
-    headerTitle: {
-      fontSize: 28,
-      fontWeight: "bold",
-      color: "#fff",
-      marginBottom: 4,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: "rgba(255,255,255,0.85)",
-      fontWeight: "500",
-    },
-    headerStats: {
-      justifyContent: "center",
-    },
+    container: { flex: 1 },
+    headerGradient: { paddingTop: 20, paddingBottom: 30, paddingHorizontal: 20 },
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+    headerTextSection: { flex: 1 },
+    headerEmoji: { fontSize: 40, marginBottom: 8 },
+    headerTitle: { fontSize: 28, fontWeight: "bold", color: "#fff", marginBottom: 4 },
+    headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.85)", fontWeight: "500" },
+    headerStats: { justifyContent: "center" },
     statBox: {
       alignItems: "center",
       backgroundColor: "rgba(255,255,255,0.15)",
@@ -487,25 +425,10 @@ function getStyles(colors: any, theme: string) {
       paddingVertical: 12,
       borderRadius: 12,
     },
-    statNumber: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: "#fff",
-    },
-    statLabel: {
-      fontSize: 11,
-      color: "rgba(255,255,255,0.7)",
-      marginTop: 4,
-      fontWeight: "600",
-    },
-    scrollContent: {
-      paddingHorizontal: 16,
-      paddingTop: 16,
-      paddingBottom: 30,
-    },
-    searchSection: {
-      marginBottom: 20,
-    },
+    statNumber: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+    statLabel: { fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 4, fontWeight: "600" },
+    scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 30 },
+    searchSection: { marginBottom: 20 },
     searchBar: {
       flexDirection: "row",
       alignItems: "center",
@@ -519,43 +442,15 @@ function getStyles(colors: any, theme: string) {
       shadowOpacity: 0.1,
       shadowRadius: 2,
     },
-    searchIcon: {
-      fontSize: 18,
-      marginRight: 12,
-    },
-    searchInputWrapper: {
-      flex: 1,
-    },
-    searchLabel: {
-      fontSize: 11,
-      fontWeight: "600",
-      marginBottom: 2,
-    },
-    searchInput: {
-      fontSize: 14,
-      fontWeight: "500",
-      padding: 0,
-    },
-    clearIcon: {
-      fontSize: 18,
-      color: "#999",
-      fontWeight: "bold",
-    },
-    filterSection: {
-      marginBottom: 24,
-    },
-    filterTitle: {
-      fontSize: 14,
-      fontWeight: "bold",
-      marginBottom: 12,
-    },
-    levelScroll: {
-      marginHorizontal: -16,
-      paddingHorizontal: 16,
-    },
-    levelScrollContent: {
-      gap: 10,
-    },
+    searchIcon: { fontSize: 18, marginRight: 12 },
+    searchInputWrapper: { flex: 1 },
+    searchLabel: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
+    searchInput: { fontSize: 14, fontWeight: "500", padding: 0 },
+    clearIcon: { fontSize: 18, color: "#999", fontWeight: "bold" },
+    filterSection: { marginBottom: 24 },
+    filterTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 12 },
+    levelScroll: { marginHorizontal: -16, paddingHorizontal: 16 },
+    levelScrollContent: { gap: 10 },
     levelButton: {
       paddingHorizontal: 16,
       paddingVertical: 10,
@@ -572,31 +467,11 @@ function getStyles(colors: any, theme: string) {
       shadowOpacity: 0.25,
       shadowRadius: 3,
     },
-    levelButtonText: {
-      fontWeight: "600",
-      fontSize: 13,
-    },
-    emptyContainer: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 80,
-      paddingHorizontal: 20,
-    },
-    emptyEmoji: {
-      fontSize: 60,
-      marginBottom: 16,
-    },
-    emptyText: {
-      fontSize: 18,
-      fontWeight: "bold",
-      marginBottom: 8,
-    },
-    emptySubtext: {
-      fontSize: 14,
-      textAlign: "center",
-      marginBottom: 24,
-      lineHeight: 20,
-    },
+    levelButtonText: { fontWeight: "600", fontSize: 13 },
+    emptyContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 20 },
+    emptyEmoji: { fontSize: 60, marginBottom: 16 },
+    emptyText: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
+    emptySubtext: { fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 },
     createButton: {
       paddingHorizontal: 24,
       paddingVertical: 12,
@@ -607,17 +482,9 @@ function getStyles(colors: any, theme: string) {
       shadowOpacity: 0.2,
       shadowRadius: 3,
     },
-    createButtonText: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 14,
-    },
-    listContainer: {
-      gap: 14,
-    },
-    cardWrapper: {
-      marginBottom: 4,
-    },
+    createButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
+    listContainer: { gap: 14 },
+    cardWrapper: { marginBottom: 4 },
     card: {
       height: 280,
       borderRadius: 16,
@@ -628,172 +495,33 @@ function getStyles(colors: any, theme: string) {
       shadowOpacity: 0.25,
       shadowRadius: 4,
     },
-    cardImage: {
-      borderRadius: 16,
-    },
-    overlay: {
-      flex: 1,
-      padding: 16,
-      justifyContent: "space-between",
-    },
-    badgeRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 8,
-      gap: 8,
-    },
-    ownMatchBadge: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      elevation: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 2,
-    },
-    ownMatchBadgeText: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 11,
-    },
-    levelBadge: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      elevation: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 2,
-    },
-    levelBadgeText: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 12,
-    },
-    teamDisplaySection: {
-      alignItems: "center",
-      marginVertical: 8,
-    },
-    teamContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-    },
-    team: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    playerSlot: {
-      width: 40,
-      height: 40,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    playerCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      justifyContent: "center",
-      alignItems: "center",
-      elevation: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 2,
-    },
-    playerInitials: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 11,
-    },
-    emptyCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      borderWidth: 2,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    plusText: {
-      fontSize: 18,
-      fontWeight: "bold",
-    },
-    divider: {
-      fontSize: 24,
-      fontWeight: "bold",
-      marginHorizontal: 8,
-    },
-    cardContent: {
-      justifyContent: "space-between",
-    },
-    clubName: {
-      fontSize: 22,
-      fontWeight: "bold",
-      color: "#fff",
-      marginBottom: 8,
-      textShadowColor: "rgba(0,0,0,0.4)",
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 3,
-    },
-    detailsRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    detail: {
-      color: "rgba(255,255,255,0.95)",
-      fontSize: 12,
-      fontWeight: "500",
-    },
-    detailDot: {
-      color: "rgba(255,255,255,0.5)",
-      fontSize: 10,
-    },
-    bottomSection: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-end",
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: "rgba(255,255,255,0.2)",
-    },
-    priceContainer: {
-      justifyContent: "flex-end",
-    },
-    priceLabel: {
-      fontSize: 11,
-      fontWeight: "600",
-      marginBottom: 4,
-    },
-    price: {
-      color: "#fff",
-      fontSize: 24,
-      fontWeight: "bold",
-      textShadowColor: "rgba(0,0,0,0.3)",
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 2,
-    },
-    reserveerButton: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 10,
-      elevation: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 3,
-    },
-    reserveerButtonText: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 13,
-    },
-    bottomSpacing: {
-      height: 20,
-    },
+    cardImage: { borderRadius: 16 },
+    overlay: { flex: 1, padding: 16, justifyContent: "space-between" },
+    badgeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8 },
+    ownMatchBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 2 },
+    ownMatchBadgeText: { color: "#fff", fontWeight: "bold", fontSize: 11 },
+    levelBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 2 },
+    levelBadgeText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
+    teamDisplaySection: { alignItems: "center", marginVertical: 8 },
+    teamContainer: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
+    team: { flexDirection: "row", gap: 8 },
+    playerSlot: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+    playerCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center", elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 2 },
+    playerInitials: { color: "#fff", fontWeight: "bold", fontSize: 11 },
+    emptyCircle: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, justifyContent: "center", alignItems: "center" },
+    plusText: { fontSize: 18, fontWeight: "bold" },
+    divider: { fontSize: 24, fontWeight: "bold", marginHorizontal: 8 },
+    cardContent: { justifyContent: "space-between" },
+    clubName: { fontSize: 22, fontWeight: "bold", color: "#fff", marginBottom: 8, textShadowColor: "rgba(0,0,0,0.4)", textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
+    detailsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    detail: { color: "rgba(255,255,255,0.95)", fontSize: 12, fontWeight: "500" },
+    detailDot: { color: "rgba(255,255,255,0.5)", fontSize: 10 },
+    bottomSection: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.2)" },
+    priceContainer: { justifyContent: "flex-end" },
+    priceLabel: { fontSize: 11, fontWeight: "600", marginBottom: 4 },
+    price: { color: "#fff", fontSize: 24, fontWeight: "bold", textShadowColor: "rgba(0,0,0,0.3)", textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
+    reserveerButton: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3 },
+    reserveerButtonText: { color: "#fff", fontWeight: "bold", fontSize: 13 },
+    bottomSpacing: { height: 20 },
   });
 }

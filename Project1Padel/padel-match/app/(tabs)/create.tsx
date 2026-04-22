@@ -18,6 +18,7 @@ import { useState } from "react";
 import { Picker } from "@react-native-picker/picker";
 import { locations, timeSlots, Location } from "../data/matches";
 import { LinearGradient } from "expo-linear-gradient";
+import { auth } from "../lib/firebase"; // ✅ import auth
 
 export default function Create() {
   const { colors, theme } = useTheme();
@@ -47,6 +48,8 @@ export default function Create() {
       return;
     }
 
+    const currentUser = auth.currentUser; // ✅ get the actual Firebase user
+
     const creatorInfo = profile ? {
       firstName: profile.firstName,
       lastName: profile.lastName,
@@ -58,7 +61,8 @@ export default function Create() {
       date,
       selectedTimeSlot.start,
       selectedTimeSlot.end,
-      creatorInfo
+      creatorInfo,
+      currentUser?.uid // ✅ pass the actual Firebase uid
     );
 
     if (success) {

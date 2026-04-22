@@ -12,5 +12,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Helpful debug logs (keep for now)
+console.log("Firebase config check:", {
+  apiKeyPresent: !!process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+  appIdPresent: !!process.env.EXPO_PUBLIC_APP_ID,
+});
