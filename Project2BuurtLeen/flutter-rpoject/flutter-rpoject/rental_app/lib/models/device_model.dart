@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 class DeviceModel {
   final String id;
   final String ownerId;
@@ -5,7 +8,7 @@ class DeviceModel {
   final String title;
   final String description;
   final String category;
-  final String? photoUrl;
+  final String? photoBase64;
   final double pricePerDay;
   final bool isAvailable;
   final double latitude;
@@ -19,13 +22,16 @@ class DeviceModel {
     required this.title,
     required this.description,
     required this.category,
-    this.photoUrl,
+    this.photoBase64,
     required this.pricePerDay,
     this.isAvailable = true,
     required this.latitude,
     required this.longitude,
     required this.city,
   });
+
+  Uint8List? get photoBytes =>
+      photoBase64 != null ? base64Decode(photoBase64!) : null;
 
   factory DeviceModel.fromMap(Map<String, dynamic> map) {
     return DeviceModel(
@@ -35,7 +41,7 @@ class DeviceModel {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       category: map['category'] ?? '',
-      photoUrl: map['photoUrl'],
+      photoBase64: map['photoBase64'],
       pricePerDay: (map['pricePerDay'] ?? 0.0).toDouble(),
       isAvailable: map['isAvailable'] ?? true,
       latitude: (map['latitude'] ?? 0.0).toDouble(),
@@ -52,7 +58,7 @@ class DeviceModel {
       'title': title,
       'description': description,
       'category': category,
-      'photoUrl': photoUrl,
+      'photoBase64': photoBase64,
       'pricePerDay': pricePerDay,
       'isAvailable': isAvailable,
       'latitude': latitude,

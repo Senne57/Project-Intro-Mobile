@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import '../../models/device_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/device_service.dart';
@@ -22,7 +22,8 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
   final LocationService _locationService = LocationService();
 
   String _selectedCategory = 'Vacuum Cleaner';
-  File? _imageFile;
+  XFile? _imageFile;
+  Uint8List? _imageBytes;
   bool _isLoading = false;
   double? _latitude;
   double? _longitude;
@@ -41,7 +42,11 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() => _imageFile = File(picked.path));
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _imageFile = picked;
+        _imageBytes = bytes;
+      });
     }
   }
 
@@ -70,39 +75,58 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
 
     setState(() => _isLoading = true);
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = await authService.getCurrentUserModel();
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = await authService.getCurrentUserModel();
 
-    final device = DeviceModel(
-      id: '',
-      ownerId: authService.currentUser!.uid,
-      ownerName: user?.name ?? 'Unknown',
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      category: _selectedCategory,
-      pricePerDay: double.tryParse(_priceController.text) ?? 0,
-      latitude: _latitude ?? 0,
-      longitude: _longitude ?? 0,
-      city: _city,
-    );
+      final device = DeviceModel(
+        id: '',
+        ownerId: authService.currentUser!.uid,
+        ownerName: user?.name ?? 'Unknown',
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        category: _selectedCategory,
+        pricePerDay: double.tryParse(_priceController.text) ?? 0,
+        latitude: _latitude ?? 0,
+        longitude: _longitude ?? 0,
+        city: _city,
+      );
 
-    final error = await _deviceService.addDevice(device, _imageFile);
+      final error = await _deviceService.addDevice(device, _imageFile);
 
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      if (error == null) {
+      if (mounted) {
+        if (error == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Device added!'),
+                backgroundColor: Colors.teal),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e, stack) {
+      print('=== ERROR: $e ===');
+      print(stack);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Device added!'), backgroundColor: Colors.teal),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    super.dispose();
   }
 
   @override
@@ -121,15 +145,21 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 180,
+                height: 220,
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: _imageFile != null
+                child: _imageBytes != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_imageFile!, fit: BoxFit.cover))
+                        child: Image.memory(
+                          _imageBytes!,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: 220,
+                        ),
+                      )
                     : const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -163,8 +193,7 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                   .map((cat) =>
                       DropdownMenuItem(value: cat, child: Text(cat)))
                   .toList(),
-              onChanged: (val) =>
-                  setState(() => _selectedCategory = val!),
+              onChanged: (val) => setState(() => _selectedCategory = val!),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -189,7 +218,8 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               icon: const Icon(Icons.location_on),
-              label: Text(_city.isEmpty ? 'Get my location' : 'Location: $_city'),
+              label: Text(
+                  _city.isEmpty ? 'Get my location' : 'Location: $_city'),
               onPressed: _getLocation,
             ),
             const SizedBox(height: 24),

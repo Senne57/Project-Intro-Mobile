@@ -1,23 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import '../models/device_model.dart';
 import 'package:uuid/uuid.dart';
 
 class DeviceService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final Uuid _uuid = const Uuid();
 
-  Future<String?> addDevice(DeviceModel device, File? imageFile) async {
+  Future<String?> addDevice(DeviceModel device, XFile? imageFile) async {
     try {
       final id = _uuid.v4();
-      String? photoUrl;
+      String? photoBase64;
 
       if (imageFile != null) {
-        final ref = _storage.ref().child('devices/$id.jpg');
-        await ref.putFile(imageFile);
-        photoUrl = await ref.getDownloadURL();
+        final bytes = await imageFile.readAsBytes();
+        photoBase64 = base64Encode(bytes);
       }
 
       final newDevice = DeviceModel(
@@ -27,7 +25,7 @@ class DeviceService {
         title: device.title,
         description: device.description,
         category: device.category,
-        photoUrl: photoUrl,
+        photoBase64: photoBase64,
         pricePerDay: device.pricePerDay,
         isAvailable: device.isAvailable,
         latitude: device.latitude,
@@ -43,16 +41,17 @@ class DeviceService {
   }
 
   Stream<List<DeviceModel>> getDevices({String? category}) {
-    Query query = _firestore.collection('devices')
+    Query query = _firestore
+        .collection('devices')
         .where('isAvailable', isEqualTo: true);
 
     if (category != null && category != 'All') {
       query = query.where('category', isEqualTo: category);
     }
 
-    return query.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) =>
-            DeviceModel.fromMap(doc.data() as Map<String, dynamic>)).toList());
+    return query.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => DeviceModel.fromMap(doc.data() as Map<String, dynamic>))
+        .toList());
   }
 
   Stream<List<DeviceModel>> getMyDevices(String ownerId) {
@@ -61,8 +60,7 @@ class DeviceService {
         .where('ownerId', isEqualTo: ownerId)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                DeviceModel.fromMap(doc.data()))
+            .map((doc) => DeviceModel.fromMap(doc.data()))
             .toList());
   }
 

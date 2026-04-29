@@ -107,17 +107,25 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            device.photoUrl != null
-                ? Image.network(device.photoUrl!,
-                    width: double.infinity,
-                    height: 220,
-                    fit: BoxFit.cover)
-                : Container(
-                    height: 220,
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.devices_other,
-                        size: 80, color: Colors.grey),
-                  ),
+            // ✅ SizedBox + ClipRect hard-caps the image to 220px, no overflow
+            SizedBox(
+              height: 220,
+              width: double.infinity,
+              child: device.photoBytes != null
+                  ? ClipRect(
+                      child: Image.memory(
+                        device.photoBytes!,
+                        width: double.infinity,
+                        height: 220,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.devices_other,
+                          size: 80, color: Colors.grey),
+                    ),
+            ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -126,14 +134,22 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(device.title,
+                      Expanded(
+                        child: Text(
+                          device.title,
                           style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold)),
-                      Text('€${device.pricePerDay.toStringAsFixed(2)}/day',
-                          style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.teal,
-                              fontWeight: FontWeight.bold)),
+                              fontSize: 22, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '€${device.pricePerDay.toStringAsFixed(2)}/day',
+                        style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.teal,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -141,10 +157,13 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                     children: [
                       const Icon(Icons.location_on,
                           size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
                       Text(device.city,
                           style: const TextStyle(color: Colors.grey)),
                       const SizedBox(width: 16),
-                      const Icon(Icons.category, size: 16, color: Colors.grey),
+                      const Icon(Icons.category,
+                          size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
                       Text(device.category,
                           style: const TextStyle(color: Colors.grey)),
                     ],
