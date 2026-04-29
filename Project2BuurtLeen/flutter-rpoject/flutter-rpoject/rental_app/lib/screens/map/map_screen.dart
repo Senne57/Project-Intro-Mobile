@@ -1,27 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:js' as js;
 
-// map_screen.dart is a placeholder — Google Maps requires an API key.
-// See the note below on how to activate it.
-class MapScreen extends StatelessWidget {
+class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  GoogleMapController? _controller;
+
+  static const CameraPosition _initialPosition = CameraPosition(
+    target: LatLng(50.8503, 4.3517),
+    zoom: 8,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    js.context.callMethod('eval', [
+      '''
+      var script = document.createElement('script');
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=$apiKey';
+      document.head.appendChild(script);
+      '''
+    ]);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.map, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Map coming soon',
-                style: TextStyle(color: Colors.grey, fontSize: 16)),
-            SizedBox(height: 8),
-            Text('https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
-          ],
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Map'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: GoogleMap(
+        initialCameraPosition: _initialPosition,
+        onMapCreated: (controller) => _controller = controller,
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
       ),
     );
   }
