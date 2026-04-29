@@ -17,7 +17,7 @@ class MapScreen extends StatelessWidget {
             Text('Map coming soon',
                 style: TextStyle(color: Colors.grey, fontSize: 16)),
             SizedBox(height: 8),
-            Text('Add your Google Maps API key\nto enable this feature',
+            Text('https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 13)),
           ],
