@@ -37,12 +37,8 @@ class LocationService {
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['results'].isNotEmpty) {
-            final components = data['results'][0]['address_components'] as List;
-            final city = components.firstWhere(
-              (c) => (c['types'] as List).contains('locality'),
-              orElse: () => null,
-            );
-            return city?['long_name'] ?? 'Unknown';
+            // Return the full formatted address instead of just the city
+            return data['results'][0]['formatted_address'] ?? 'Unknown';
           }
         }
         return 'Unknown';
@@ -51,7 +47,13 @@ class LocationService {
         final placemarks =
             await placemarkFromCoordinates(latitude, longitude);
         if (placemarks.isNotEmpty) {
-          return placemarks.first.locality ?? 'Unknown';
+          final place = placemarks.first;
+          final parts = [
+            place.street,
+            place.locality,
+            place.postalCode,
+          ].where((p) => p != null && p.isNotEmpty).toList();
+          return parts.join(', ');
         }
       }
     } catch (e) {

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // ✅ NEW — same package already used in MapScreen
+import 'dart:js' as js;                                        // ✅ NEW — same dart:js you already use in MapScreen
+import 'package:flutter_dotenv/flutter_dotenv.dart';           // ✅ NEW — same dotenv you already use in MapScreen
 import '../../models/device_model.dart';
 import '../../models/reservation_model.dart';
 import '../../services/auth_service.dart';
@@ -18,6 +21,29 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
+
+  // ✅ NEW — controller for the embedded Google Map
+  GoogleMapController? _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ NEW — inject the Google Maps JS script the same way MapScreen does
+    // This is necessary for the map to render on Flutter Web
+    // The window._mapsLoaded check prevents loading the script twice
+    // if the user navigates back and into another device
+    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    js.context.callMethod('eval', [
+      '''
+      if (!window._mapsLoaded) {
+        var script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=$apiKey';
+        document.head.appendChild(script);
+        window._mapsLoaded = true;
+      }
+      '''
+    ]);
+  }
 
   Future<void> _pickDate(bool isStart) async {
     final picked = await showDatePicker(
@@ -62,19 +88,19 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = await authService.getCurrentUserModel();
 
-    final reservation = ReservationModel(
-      id: '',
+    // ✅ BUG FIX — using named parameters to match your updated ReservationService
+    // Old code: createReservation(reservation)  ← positional arg, caused the error
+    // New code: createReservation(deviceId: ...) ← named params, matches the service
+    final error = await _reservationService.createReservation(
       deviceId: widget.device.id,
       deviceTitle: widget.device.title,
+      ownerId: widget.device.ownerId,
       renterId: authService.currentUser!.uid,
       renterName: user?.name ?? 'Unknown',
-      ownerId: widget.device.ownerId,
       startDate: _startDate!,
       endDate: _endDate!,
       totalPrice: _totalPrice,
     );
-
-    final error = await _reservationService.createReservation(reservation);
 
     setState(() => _isLoading = false);
 
@@ -97,6 +123,21 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final device = widget.device;
+
+    // ✅ NEW — defines the red pin that appears on the map
+    // MarkerId just needs to be a unique string
+    // InfoWindow is the little popup that shows when you tap the pin
+    final Set<Marker> markers = {
+      Marker(
+        markerId: const MarkerId('device_location'),
+        position: LatLng(device.latitude, device.longitude),
+        infoWindow: InfoWindow(
+          title: device.title,
+          snippet: device.city,
+        ),
+      ),
+    };
+
     return Scaffold(
       appBar: AppBar(
         title: Text(device.title),
@@ -107,7 +148,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ SizedBox + ClipRect hard-caps the image to 220px, no overflow
+            // Device image — unchanged
             SizedBox(
               height: 220,
               width: double.infinity,
@@ -131,6 +172,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title + price — unchanged
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -153,6 +195,8 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+
+                  // Location + category row — unchanged
                   Row(
                     children: [
                       const Icon(Icons.location_on,
@@ -169,15 +213,52 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+
+                  // Owner — unchanged
                   Text('Owner: ${device.ownerName}',
                       style: const TextStyle(color: Colors.grey)),
                   const Divider(height: 32),
+
+                  // Description — unchanged
                   const Text('Description',
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Text(device.description),
                   const Divider(height: 32),
+
+                  // ✅ NEW SECTION START ─────────────────────────────────────
+                  // Embedded Google Map — shows a 220px interactive map
+                  // with a red pin on the device's exact saved coordinates.
+                  // ClipRRect gives it rounded corners to match the card style.
+                  const Text('Location',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 220,
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          // Centers map on the device's latitude/longitude
+                          target: LatLng(device.latitude, device.longitude),
+                          zoom: 15, // Street-level zoom like in your screenshot
+                        ),
+                        markers: markers,
+                        zoomControlsEnabled: true,
+                        myLocationButtonEnabled: false,
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                        },
+                      ),
+                    ),
+                  ),
+                  // ✅ NEW SECTION END ───────────────────────────────────────
+
+                  const Divider(height: 32),
+
+                  // Rental period picker — unchanged
                   const Text('Select Rental Period',
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
@@ -205,6 +286,8 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                       ),
                     ],
                   ),
+
+                  // Total price — unchanged
                   if (_startDate != null && _endDate != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -216,6 +299,8 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
+
+                  // Reserve Now button — unchanged except named params fix above
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

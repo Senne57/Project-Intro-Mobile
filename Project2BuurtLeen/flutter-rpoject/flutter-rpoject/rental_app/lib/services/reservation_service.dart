@@ -6,24 +6,33 @@ class ReservationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Uuid _uuid = const Uuid();
 
-  Future<String?> createReservation(ReservationModel reservation) async {
+  Future<String?> createReservation({
+    required String deviceId,
+    required String deviceTitle,
+    required String ownerId,
+    required String renterId,
+    required String renterName,
+    required DateTime startDate,
+    required DateTime endDate,
+    required double totalPrice,
+  }) async {
     try {
       final id = _uuid.v4();
-      final newReservation = ReservationModel(
+      final reservation = ReservationModel(
         id: id,
-        deviceId: reservation.deviceId,
-        deviceTitle: reservation.deviceTitle,
-        renterId: reservation.renterId,
-        renterName: reservation.renterName,
-        ownerId: reservation.ownerId,
-        startDate: reservation.startDate,
-        endDate: reservation.endDate,
-        totalPrice: reservation.totalPrice,
+        deviceId: deviceId,
+        deviceTitle: deviceTitle,
+        renterId: renterId,
+        renterName: renterName,
+        ownerId: ownerId,
+        startDate: startDate,
+        endDate: endDate,
+        totalPrice: totalPrice,
       );
       await _firestore
           .collection('reservations')
           .doc(id)
-          .set(newReservation.toMap());
+          .set(reservation.toMap());
       return null;
     } catch (e) {
       return e.toString();

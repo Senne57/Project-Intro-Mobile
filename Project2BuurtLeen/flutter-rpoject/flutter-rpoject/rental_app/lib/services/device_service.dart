@@ -1,21 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import '../models/device_model.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 
 class DeviceService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Uuid _uuid = const Uuid();
 
-  Future<String?> addDevice(DeviceModel device, XFile? imageFile) async {
+  Future<String?> addDevice(DeviceModel device, dynamic imageFile) async {
     try {
       final id = _uuid.v4();
       String? photoBase64;
 
       if (imageFile != null) {
-        final bytes = await imageFile.readAsBytes();
-        photoBase64 = base64Encode(bytes);
+        if (kIsWeb) {
+          // On web, imageFile is already Uint8List bytes
+          photoBase64 = base64Encode(imageFile as Uint8List);
+        } else {
+          // On mobile, imageFile is a File
+          final bytes = await (imageFile as File).readAsBytes();
+          photoBase64 = base64Encode(bytes);
+        }
       }
 
       final newDevice = DeviceModel(
