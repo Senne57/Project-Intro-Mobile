@@ -18,18 +18,7 @@ class _MapScreenState extends State<MapScreen> {
     zoom: 8,
   );
 
-  @override
-  void initState() {
-    super.initState();
-    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
-    js.context.callMethod('eval', [
-      '''
-      var script = document.createElement('script');
-      script.src = 'https://maps.googleapis.com/maps/api/js?key=$apiKey';
-      document.head.appendChild(script);
-      '''
-    ]);
-  }
+ 
 
   @override
   Widget build(BuildContext context) {

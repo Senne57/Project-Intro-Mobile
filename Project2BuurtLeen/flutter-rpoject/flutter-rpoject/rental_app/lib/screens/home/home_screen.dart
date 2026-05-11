@@ -5,6 +5,8 @@ import '../devices/device_list_screen.dart';
 import '../devices/add_device_screen.dart';
 import '../reservations/my_reservations_screen.dart';
 import '../reservations/manage_reservations_screen.dart';
+import '../chat/chats_list_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const DeviceListScreen(),
     const MyReservationsScreen(),
     const ManageReservationsScreen(),
+    const ChatsListScreen(),
   ];
 
   Future<void> _confirmLogout(BuildContext context) async {
@@ -59,6 +62,13 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _confirmLogout(context),
           ),
@@ -79,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: Colors.teal,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
           BottomNavigationBarItem(
@@ -92,6 +103,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            label: 'Chats',
           ),
         ],
       ),

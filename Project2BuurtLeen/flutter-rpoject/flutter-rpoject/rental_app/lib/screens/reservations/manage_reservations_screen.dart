@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/reservation_service.dart';
+import '../../services/review_service.dart';       // ✅ NEW
 import '../../models/reservation_model.dart';
+import '../reviews/review_screen.dart';            // ✅ NEW
 import 'package:intl/intl.dart';
 
 class ManageReservationsScreen extends StatelessWidget {
@@ -21,9 +23,11 @@ class ManageReservationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
     final reservationService = ReservationService();
+    final reviewService = ReviewService();
+    final currentUserId = authService.currentUser!.uid;
 
     return StreamBuilder<List<ReservationModel>>(
-      stream: reservationService.getIncomingReservations(authService.currentUser!.uid),
+      stream: reservationService.getIncomingReservations(currentUserId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -41,14 +45,26 @@ class ManageReservationsScreen extends StatelessWidget {
             ),
           );
         }
+
         final reservations = snapshot.data!;
+        final pending = reservations.where((r) => r.status == 'pending').toList();
+        final others = reservations.where((r) => r.status != 'pending').toList();
+        final sorted = [...pending, ...others];
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: reservations.length,
+          itemCount: sorted.length,
           itemBuilder: (context, index) {
-            final r = reservations[index];
+            final r = sorted[index];
             final days = r.endDate.difference(r.startDate).inDays + 1;
+
             return Card(
+              shape: r.status == 'pending'
+                  ? const RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.teal, width: 2),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    )
+                  : null,
               margin: const EdgeInsets.only(bottom: 12),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -91,8 +107,23 @@ class ManageReservationsScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text('Total: €${r.totalPrice.toStringAsFixed(2)}',
                         style: const TextStyle(color: Colors.teal)),
+
+                    // Approve / Reject buttons for pending reservations
                     if (r.status == 'pending') ...[
                       const SizedBox(height: 12),
+                      const Row(
+                        children: [
+                          Icon(Icons.notifications_active,
+                              size: 14, color: Colors.teal),
+                          SizedBox(width: 4),
+                          Text('Action required',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.teal,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(
@@ -103,8 +134,19 @@ class ManageReservationsScreen extends StatelessWidget {
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () => reservationService
-                                  .updateStatus(r.id, 'approved'),
+                              onPressed: () async {
+                                final user =
+                                    await authService.getCurrentUserModel();
+                                await reservationService.updateStatus(
+                                  r.id,
+                                  'approved',
+                                  ownerId: r.ownerId,
+                                  ownerName: user?.name ?? 'Unknown',
+                                  renterId: r.renterId,
+                                  renterName: r.renterName,
+                                  deviceTitle: r.deviceTitle,
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -116,11 +158,64 @@ class ManageReservationsScreen extends StatelessWidget {
                                 foregroundColor: Colors.red,
                                 side: const BorderSide(color: Colors.red),
                               ),
-                              onPressed: () => reservationService
-                                  .updateStatus(r.id, 'rejected'),
+                              onPressed: () => reservationService.updateStatus(
+                                r.id,
+                                'rejected',
+                                renterId: r.renterId,
+                                deviceTitle: r.deviceTitle,
+                              ),
                             ),
                           ),
                         ],
+                      ),
+                    ],
+
+                    // ✅ NEW — Leave Review button for completed reservations
+                    // Owner reviews the renter after the rental is done
+                    if (r.status == 'completed') ...[
+                      const SizedBox(height: 12),
+                      FutureBuilder<bool>(
+                        future: reviewService.hasReviewed(r.id, currentUserId),
+                        builder: (context, reviewSnapshot) {
+                          final alreadyReviewed = reviewSnapshot.data ?? false;
+                          if (alreadyReviewed) {
+                            return const Row(
+                              children: [
+                                Icon(Icons.check_circle,
+                                    size: 16, color: Colors.grey),
+                                SizedBox(width: 4),
+                                Text('Review submitted',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 13)),
+                              ],
+                            );
+                          }
+                          return SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.star_border,
+                                  color: Colors.amber),
+                              label: const Text('Review Renter',
+                                  style: TextStyle(color: Colors.teal)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.teal),
+                              ),
+                              // Owner reviews the renter so targetId = renterId
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReviewScreen(
+                                    reservationId: r.id,
+                                    targetId: r.renterId,
+                                    targetName: r.renterName,
+                                    deviceTitle: r.deviceTitle,
+                                    isOwnerReviewing: true,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ],
