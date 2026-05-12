@@ -80,10 +80,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reviewingLabel = widget.isOwnerReviewing
-        ? 'Review renter: ${widget.targetName}'
-        : 'Review owner: ${widget.targetName}';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leave a Review'),
@@ -99,9 +95,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               widget.deviceTitle,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
-            Text(reviewingLabel,
-                style: const TextStyle(color: Colors.grey)),
+            // ✅ reviewingLabel verwijderd
             const Divider(height: 32),
 
             const Text('Rating',

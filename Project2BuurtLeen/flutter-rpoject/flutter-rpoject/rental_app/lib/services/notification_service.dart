@@ -6,7 +6,6 @@ class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Uuid _uuid = const Uuid();
 
-  // Creates a notification document in Firestore for a specific user
   Future<void> createNotification({
     required String userId,
     required String title,
@@ -27,19 +26,22 @@ class NotificationService {
         .set(notification.toMap());
   }
 
-  // Live stream of all notifications for the current user, newest first
+  // ✅ orderBy verwijderd, sorteren client-side
   Stream<List<NotificationModel>> getNotifications(String userId) {
     return _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => NotificationModel.fromMap(doc.data()))
-            .toList());
+        .map((snapshot) {
+          final notifications = snapshot.docs
+              .map((doc) => NotificationModel.fromMap(doc.data()))
+              .toList();
+          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return notifications;
+        });
   }
 
-  // Count of unread notifications — used for the red badge on the bell icon
+  // ✅ orderBy verwijderd
   Stream<int> getUnreadCount(String userId) {
     return _firestore
         .collection('notifications')
@@ -49,7 +51,6 @@ class NotificationService {
         .map((snapshot) => snapshot.docs.length);
   }
 
-  // Mark a single notification as read when the user opens the dropdown
   Future<void> markAsRead(String notificationId) async {
     await _firestore
         .collection('notifications')
@@ -57,7 +58,6 @@ class NotificationService {
         .update({'isRead': true});
   }
 
-  // Mark all notifications as read — called when user opens the bell dropdown
   Future<void> markAllAsRead(String userId) async {
     final unread = await _firestore
         .collection('notifications')
@@ -65,7 +65,6 @@ class NotificationService {
         .where('isRead', isEqualTo: false)
         .get();
 
-    // Batch write is more efficient than updating one by one
     final batch = _firestore.batch();
     for (final doc in unread.docs) {
       batch.update(doc.reference, {'isRead': true});
@@ -73,8 +72,6 @@ class NotificationService {
     await batch.commit();
   }
 
-  // Called by a scheduled check or when reservations are loaded —
-  // creates a reminder notification if end date is tomorrow
   Future<void> checkAndSendEndDateReminders({
     required String userId,
     required String deviceTitle,
@@ -88,7 +85,6 @@ class NotificationService {
 
     if (!isEndingTomorrow) return;
 
-    // Check if we already sent this reminder to avoid duplicates
     final existing = await _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
@@ -101,7 +97,6 @@ class NotificationService {
         title: '⏰ Rental ending tomorrow',
         body: 'Your rental of "$deviceTitle" ends tomorrow. Don\'t forget to return it!',
       );
-      // Store a marker so we don't send this reminder again
       await _firestore.collection('notifications').add({
         'userId': userId,
         'title': '_reminder_sent',
