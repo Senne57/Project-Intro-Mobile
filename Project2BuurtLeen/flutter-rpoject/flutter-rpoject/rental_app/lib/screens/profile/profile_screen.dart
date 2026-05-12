@@ -4,13 +4,19 @@ import '../../services/auth_service.dart';
 import '../../services/review_service.dart';
 import '../../models/review_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final ReviewService _reviewService = ReviewService();
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final reviewService = ReviewService();
     final currentUserId = authService.currentUser!.uid;
 
     return Scaffold(
@@ -72,15 +78,14 @@ class ProfileScreen extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Reviews about me',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
 
               Expanded(
                 child: StreamBuilder<List<ReviewModel>>(
-                  stream: reviewService.getReviewsForUser(currentUserId),
+                  stream: _reviewService.getReviewsForUser(currentUserId),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -90,12 +95,10 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.star_border,
-                                size: 64, color: Colors.grey),
+                            Icon(Icons.star_border, size: 64, color: Colors.grey),
                             SizedBox(height: 16),
                             Text('No reviews yet',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 16)),
+                                style: TextStyle(color: Colors.grey, fontSize: 16)),
                           ],
                         ),
                       );
@@ -116,20 +119,17 @@ class ProfileScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.amber.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: Colors.amber.withOpacity(0.3)),
+                            border: Border.all(color: Colors.amber.withOpacity(0.3)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.star,
-                                  color: Colors.amber, size: 28),
+                              const Icon(Icons.star, color: Colors.amber, size: 28),
                               const SizedBox(width: 8),
                               Text(
                                 avgRating.toStringAsFixed(1),
                                 style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold),
+                                    fontSize: 24, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -153,8 +153,7 @@ class ProfileScreen extends StatelessWidget {
                                 child: Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         mainAxisAlignment:
@@ -183,8 +182,7 @@ class ProfileScreen extends StatelessWidget {
                                       Text(
                                         review.deviceTitle,
                                         style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12),
+                                            color: Colors.grey, fontSize: 12),
                                       ),
                                       if (review.comment.isNotEmpty) ...[
                                         const SizedBox(height: 8),
@@ -194,8 +192,7 @@ class ProfileScreen extends StatelessWidget {
                                       Text(
                                         '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}',
                                         style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 11),
+                                            color: Colors.grey, fontSize: 11),
                                       ),
                                     ],
                                   ),

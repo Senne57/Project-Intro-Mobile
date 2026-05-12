@@ -24,14 +24,18 @@ class DeviceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            /// IMAGE (clean fixed height + crop)
             SizedBox(
               height: 150,
               width: double.infinity,
               child: device.photoBytes != null
-                  ? Image.memory(
-                      device.photoBytes!,
-                      fit: BoxFit.cover,
+                  ? Container(
+                      color: Colors.grey[100],
+                      child: Image.memory(
+                        device.photoBytes!,
+                        fit: BoxFit.contain, // ✅
+                        width: double.infinity,
+                        height: 150,
+                      ),
                     )
                   : Container(
                       color: Colors.grey[200],
@@ -42,14 +46,11 @@ class DeviceCard extends StatelessWidget {
                       ),
                     ),
             ),
-
-            /// CONTENT
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// TITLE + PRICE
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -72,10 +73,7 @@ class DeviceCard extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 6),
-
-                  /// LOCATION + CATEGORY
                   Row(
                     children: [
                       const Icon(Icons.location_on,

@@ -1,1 +1,2 @@
 .env
+lib/firebase_options.dart

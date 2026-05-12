@@ -3,12 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ReviewModel {
   final String id;
   final String reservationId;
-  final String reviewerId;     // the person writing the review
+  final String reviewerId;
   final String reviewerName;
-  final String targetId;       // the person being reviewed
+  final String targetId;
   final String targetName;
   final String deviceTitle;
-  final int rating;            // 1–5 stars
+  final int rating;
   final String comment;
   final DateTime createdAt;
 

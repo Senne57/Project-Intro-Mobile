@@ -20,7 +20,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
   final ReservationService _reservationService = ReservationService();
   DateTime? _startDate;
   DateTime? _endDate;
-  TimeOfDay? _endTime; // ✅ NEW
+  TimeOfDay? _endTime;
   bool _isLoading = false;
   GoogleMapController? _mapController;
 
@@ -37,14 +37,12 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
           _startDate = picked;
         } else {
           _endDate = picked;
-          // ✅ NEW — after picking end date, ask for end time
           _pickEndTime();
         }
       });
     }
   }
 
-  // ✅ NEW — time picker for end time
   Future<void> _pickEndTime() async {
     final picked = await showTimePicker(
       context: context,
@@ -101,7 +99,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
       renterName: user?.name ?? 'Unknown',
       startDate: _startDate!,
       endDate: _endDate!,
-      endTime: _endTime, // ✅ NEW
+      endTime: _endTime,
       totalPrice: _totalPrice,
     );
 
@@ -150,16 +148,18 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ✅ foto met BoxFit.contain
             SizedBox(
               height: 220,
               width: double.infinity,
               child: device.photoBytes != null
-                  ? ClipRect(
+                  ? Container(
+                      color: Colors.grey[100],
                       child: Image.memory(
                         device.photoBytes!,
                         width: double.infinity,
                         height: 220,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain, // ✅
                       ),
                     )
                   : Container(
@@ -197,12 +197,14 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                      const Icon(Icons.location_on,
+                          size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(device.city,
                           style: const TextStyle(color: Colors.grey)),
                       const SizedBox(width: 16),
-                      const Icon(Icons.category, size: 16, color: Colors.grey),
+                      const Icon(Icons.category,
+                          size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(device.category,
                           style: const TextStyle(color: Colors.grey)),
@@ -210,38 +212,40 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Row(
-  children: [
-    const Icon(Icons.person, size: 16, color: Colors.grey),
-    const SizedBox(width: 4),
-    Text('Owner: ${device.ownerName}',
-        style: const TextStyle(color: Colors.grey)),
-    const Spacer(),
-    TextButton.icon(
-      icon: const Icon(Icons.star, color: Colors.amber, size: 16),
-      label: const Text('View Profile',
-          style: TextStyle(color: Colors.teal, fontSize: 13)),
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PublicProfileScreen(
-            userId: device.ownerId,
-            userName: device.ownerName,
-          ),
-        ),
-      ),
-    ),
-  ],
-),
-const Divider(height: 32),
+                    children: [
+                      const Icon(Icons.person, size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text('Owner: ${device.ownerName}',
+                          style: const TextStyle(color: Colors.grey)),
+                      const Spacer(),
+                      TextButton.icon(
+                        icon: const Icon(Icons.star,
+                            color: Colors.amber, size: 16),
+                        label: const Text('View Profile',
+                            style: TextStyle(
+                                color: Colors.teal, fontSize: 13)),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PublicProfileScreen(
+                              userId: device.ownerId,
+                              userName: device.ownerName,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 32),
                   const Text('Description',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Text(device.description),
                   const Divider(height: 32),
                   const Text('Location',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -249,7 +253,8 @@ const Divider(height: 32),
                       height: 220,
                       child: GoogleMap(
                         initialCameraPosition: CameraPosition(
-                          target: LatLng(device.latitude, device.longitude),
+                          target:
+                              LatLng(device.latitude, device.longitude),
                           zoom: 15,
                         ),
                         markers: markers,
@@ -262,7 +267,8 @@ const Divider(height: 32),
                   ),
                   const Divider(height: 32),
                   StreamBuilder<List<ReservationModel>>(
-                    stream: _reservationService.getMyReservations(currentUserId),
+                    stream: _reservationService
+                        .getMyReservations(currentUserId),
                     builder: (context, snapshot) {
                       final reservations = snapshot.data ?? [];
                       final approvedReservation = reservations
@@ -272,34 +278,38 @@ const Divider(height: 32),
                               r.chatId != null)
                           .firstOrNull;
 
-                      if (approvedReservation == null)
+                      if (approvedReservation == null) {
                         return const SizedBox.shrink();
+                      }
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text('Chat',
                               style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              icon: const Icon(Icons.chat_bubble_outline),
+                              icon: const Icon(
+                                  Icons.chat_bubble_outline),
                               label: const Text('Chat with Owner',
                                   style: TextStyle(fontSize: 16)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal,
                                 foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14),
                               ),
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => ChatScreen(
-                                      chatId: approvedReservation.chatId!,
+                                      chatId:
+                                          approvedReservation.chatId!,
                                       deviceTitle: device.title,
                                     ),
                                   ),
@@ -313,8 +323,8 @@ const Divider(height: 32),
                     },
                   ),
                   const Text('Select Rental Period',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -339,8 +349,6 @@ const Divider(height: 32),
                       ),
                     ],
                   ),
-
-                  // ✅ NEW — show end time picker separately too
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.access_time),
@@ -349,7 +357,6 @@ const Divider(height: 32),
                         : 'Return time: ${_endTime!.format(context)}'),
                     onPressed: _pickEndTime,
                   ),
-
                   if (_startDate != null && _endDate != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -368,10 +375,12 @@ const Divider(height: 32),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.teal,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const CircularProgressIndicator(
+                              color: Colors.white)
                           : const Text('Reserve Now',
                               style: TextStyle(fontSize: 16)),
                     ),

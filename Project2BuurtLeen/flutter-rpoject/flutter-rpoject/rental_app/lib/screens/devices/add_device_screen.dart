@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:html' as html;
 import '../../models/device_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/device_service.dart';
@@ -22,7 +24,6 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
   final LocationService _locationService = LocationService();
 
   String _selectedCategory = 'Vacuum Cleaner';
-  XFile? _imageFile;
   Uint8List? _imageBytes;
   bool _isLoading = false;
   double? _latitude;
@@ -38,13 +39,43 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
     'Other',
   ];
 
+  Future<Uint8List> _compressImageWeb(Uint8List bytes) async {
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final imgElement = html.ImageElement()..src = url;
+    await imgElement.onLoad.first;
+
+    const maxSize = 600;
+    int width = imgElement.naturalWidth ?? 0;
+    int height = imgElement.naturalHeight ?? 0;
+
+    if (width > maxSize || height > maxSize) {
+      if (width > height) {
+        height = (height * maxSize / width).round();
+        width = maxSize;
+      } else {
+        width = (width * maxSize / height).round();
+        height = maxSize;
+      }
+    }
+
+    final canvas = html.CanvasElement(width: width, height: height);
+    final ctx = canvas.context2D;
+    ctx.drawImageScaled(imgElement, 0, 0, width, height);
+    html.Url.revokeObjectUrl(url);
+
+    final dataUrl = canvas.toDataUrl('image/jpeg', 0.6);
+    final base64Str = dataUrl.split(',').last;
+    return base64Decode(base64Str); // ✅ correct decoderen
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      final bytes = await picked.readAsBytes();
+      Uint8List bytes = await picked.readAsBytes();
+      bytes = await _compressImageWeb(bytes); // ✅ comprimeer
       setState(() {
-        _imageFile = picked;
         _imageBytes = bytes;
       });
     }
@@ -92,7 +123,7 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
         city: _city,
       );
 
-      final error = await _deviceService.addDevice(device, _imageFile);
+      final error = await _deviceService.addDevice(device, _imageBytes);
 
       if (mounted) {
         if (error == null) {

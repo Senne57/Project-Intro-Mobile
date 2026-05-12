@@ -29,7 +29,6 @@ class LocationService {
       double latitude, double longitude) async {
     try {
       if (kIsWeb) {
-        // Use Google Maps Geocoding API on web
         final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
         final url =
             'https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=$apiKey';
@@ -37,13 +36,11 @@ class LocationService {
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['results'].isNotEmpty) {
-            // Return the full formatted address instead of just the city
             return data['results'][0]['formatted_address'] ?? 'Unknown';
           }
         }
         return 'Unknown';
       } else {
-        // Use geocoding package on mobile
         final placemarks =
             await placemarkFromCoordinates(latitude, longitude);
         if (placemarks.isNotEmpty) {

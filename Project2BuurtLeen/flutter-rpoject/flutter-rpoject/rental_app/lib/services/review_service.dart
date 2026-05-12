@@ -50,11 +50,14 @@ class ReviewService {
     return _firestore
         .collection('reviews')
         .where('targetId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ReviewModel.fromMap(doc.data()))
-            .toList());
+        .map((snapshot) {
+          final reviews = snapshot.docs
+              .map((doc) => ReviewModel.fromMap(doc.data()))
+              .toList();
+          reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return reviews;
+        });
   }
 
   // Check if the current user already reviewed this reservation
