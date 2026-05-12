@@ -20,7 +20,7 @@ class ReservationService {
     required DateTime startDate,
     required DateTime endDate,
     required double totalPrice,
-    TimeOfDay? endTime, // ✅ NEW
+    TimeOfDay? endTime,
   }) async {
     try {
       final id = _uuid.v4();
@@ -33,7 +33,7 @@ class ReservationService {
         ownerId: ownerId,
         startDate: startDate,
         endDate: endDate,
-        endTime: endTime, // ✅ NEW
+        endTime: endTime,
         totalPrice: totalPrice,
       );
       await _firestore
@@ -44,13 +44,34 @@ class ReservationService {
       await _notificationService.createNotification(
         userId: ownerId,
         title: '📩 New rental request',
-        body: '$renterName wants to rent "$deviceTitle". Check your Dashboard!',
+        body:
+            '$renterName wants to rent "$deviceTitle". Check your Dashboard!',
       );
 
       return null;
     } catch (e) {
       return e.toString();
     }
+  }
+
+  // ✅ NEW — returns all booked dates for a device (approved reservations only)
+  Future<List<DateTime>> getBookedDates(String deviceId) async {
+    final snapshot = await _firestore
+        .collection('reservations')
+        .where('deviceId', isEqualTo: deviceId)
+        .where('status', isEqualTo: 'approved')
+        .get();
+
+    final List<DateTime> bookedDates = [];
+    for (final doc in snapshot.docs) {
+      final r = ReservationModel.fromMap(doc.data());
+      DateTime current = r.startDate;
+      while (!current.isAfter(r.endDate)) {
+        bookedDates.add(DateTime(current.year, current.month, current.day));
+        current = current.add(const Duration(days: 1));
+      }
+    }
+    return bookedDates;
   }
 
   Stream<List<ReservationModel>> getMyReservations(String renterId) {

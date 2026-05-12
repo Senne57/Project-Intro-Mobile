@@ -19,17 +19,15 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
   String _selectedCategory = 'All';
 
   final List<String> _categories = [
-    'All',
-    'Vacuum Cleaner',
-    'Lawn Mower',
-    'Kitchen',
-    'Power Tools',
-    'Cleaning',
-    'Other',
+    'All', 'Vacuum Cleaner', 'Lawn Mower', 'Kitchen',
+    'Power Tools', 'Cleaning', 'Other',
   ];
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId =
+        Provider.of<AuthService>(context, listen: false).currentUser!.uid;
+
     return Column(
       children: [
         CategoryFilter(
@@ -44,7 +42,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+
+              // ✅ Filter out devices owned by the current user
+              final devices = (snapshot.data ?? [])
+                  .where((d) => d.ownerId != currentUserId)
+                  .toList();
+
+              if (devices.isEmpty) {
                 return const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -59,9 +63,9 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
               }
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: snapshot.data!.length,
+                itemCount: devices.length,
                 itemBuilder: (context, index) {
-                  final device = snapshot.data![index];
+                  final device = devices[index];
                   return DeviceCard(
                     device: device,
                     onTap: () => Navigator.push(
