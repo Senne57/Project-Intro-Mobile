@@ -22,6 +22,40 @@ class ManageReservationsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _confirmDelete(BuildContext context, DeviceModel device) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove device'),
+        content: Text(
+            'Are you sure you want to remove "${device.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await DeviceService().deleteDevice(device.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Device removed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -36,7 +70,7 @@ class ManageReservationsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // ✅ MY DEVICES SECTION
+          // MY DEVICES SECTION
           const Text('My Devices',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
@@ -82,12 +116,33 @@ class ManageReservationsScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold)),
                     subtitle: Text(
                         '€${device.pricePerDay.toStringAsFixed(2)}/day · ${device.city}'),
-                    trailing: const Icon(Icons.chevron_right),
+                    // ✅ Red delete button on the right
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.chevron_right),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _confirmDelete(context, device),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            DeviceDetailScreen(device: device),
+                        builder: (_) => DeviceDetailScreen(device: device),
                       ),
                     ),
                   ),
@@ -98,7 +153,7 @@ class ManageReservationsScreen extends StatelessWidget {
 
           const Divider(height: 40),
 
-          // ✅ INCOMING RESERVATIONS SECTION
+          // INCOMING RESERVATIONS SECTION
           const Text('Incoming Reservations',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
@@ -136,8 +191,7 @@ class ManageReservationsScreen extends StatelessWidget {
                   return Card(
                     shape: r.status == 'pending'
                         ? const RoundedRectangleBorder(
-                            side: BorderSide(
-                                color: Colors.teal, width: 2),
+                            side: BorderSide(color: Colors.teal, width: 2),
                             borderRadius:
                                 BorderRadius.all(Radius.circular(12)),
                           )
@@ -164,8 +218,7 @@ class ManageReservationsScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: _statusColor(r.status)
                                       .withOpacity(0.15),
-                                  borderRadius:
-                                      BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   r.status.toUpperCase(),
@@ -179,8 +232,7 @@ class ManageReservationsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text('Renter: ${r.renterName}',
-                              style:
-                                  const TextStyle(color: Colors.grey)),
+                              style: const TextStyle(color: Colors.grey)),
                           const SizedBox(height: 4),
                           Text(
                             '${DateFormat('dd/MM/yyyy').format(r.startDate)} → ${DateFormat('dd/MM/yyyy').format(r.endDate)}  ($days days)',
@@ -189,8 +241,7 @@ class ManageReservationsScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                               'Total: €${r.totalPrice.toStringAsFixed(2)}',
-                              style:
-                                  const TextStyle(color: Colors.teal)),
+                              style: const TextStyle(color: Colors.teal)),
                           if (r.status == 'pending') ...[
                             const SizedBox(height: 12),
                             const Row(
@@ -219,13 +270,11 @@ class ManageReservationsScreen extends StatelessWidget {
                                     onPressed: () async {
                                       final user = await authService
                                           .getCurrentUserModel();
-                                      await reservationService
-                                          .updateStatus(
+                                      await reservationService.updateStatus(
                                         r.id,
                                         'approved',
                                         ownerId: r.ownerId,
-                                        ownerName:
-                                            user?.name ?? 'Unknown',
+                                        ownerName: user?.name ?? 'Unknown',
                                         renterId: r.renterId,
                                         renterName: r.renterName,
                                         deviceTitle: r.deviceTitle,
@@ -267,8 +316,7 @@ class ManageReservationsScreen extends StatelessWidget {
                                   return const Row(
                                     children: [
                                       Icon(Icons.check_circle,
-                                          size: 16,
-                                          color: Colors.grey),
+                                          size: 16, color: Colors.grey),
                                       SizedBox(width: 4),
                                       Text('Review submitted',
                                           style: TextStyle(
@@ -283,8 +331,8 @@ class ManageReservationsScreen extends StatelessWidget {
                                     icon: const Icon(Icons.star_border,
                                         color: Colors.amber),
                                     label: const Text('Review Renter',
-                                        style: TextStyle(
-                                            color: Colors.teal)),
+                                        style:
+                                            TextStyle(color: Colors.teal)),
                                     style: OutlinedButton.styleFrom(
                                       side: const BorderSide(
                                           color: Colors.teal),
